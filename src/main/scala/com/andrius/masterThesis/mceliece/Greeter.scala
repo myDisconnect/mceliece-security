@@ -1,4 +1,4 @@
-package com.andrius.master.mceliece
+package com.andrius.masterThesis.mceliece
 
 import akka.actor.Actor
 
