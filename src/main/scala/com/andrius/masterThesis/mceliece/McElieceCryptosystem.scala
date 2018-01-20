@@ -4,41 +4,76 @@ import com.andrius.masterThesis.mceliece.McElieceCryptosystem._
 import com.andrius.masterThesis.utils.Vector
 import java.nio.charset.{Charset, StandardCharsets}
 import java.security._
-import javax.crypto.Cipher
 
-import org.bouncycastle.pqc.jcajce.provider.BouncyCastlePQCProvider
+import org.bouncycastle.pqc.crypto.mceliece.{McEliecePrivateKeyParameters, McEliecePublicKeyParameters}
 import org.bouncycastle.pqc.jcajce.provider.mceliece.{BCMcEliecePrivateKey, BCMcEliecePublicKey}
-import org.bouncycastle.pqc.jcajce.spec.McElieceKeyGenParameterSpec
-import org.bouncycastle.pqc.math.linearalgebra.GF2Vector
-
-import scala.util.Random
+import org.bouncycastle.pqc.math.linearalgebra.{GF2Matrix, GF2Vector, GF2mField, GoppaCode, Permutation, PolynomialGF2mSmallM, PolynomialRingGF2}
 
 /**
   * Original McEliece cryptosystem
   *
+  * @see for public/private keys generation source: org.bouncycastle.pqc.crypto.mceliece.McElieceKeyPairGenerator
   * @see for encryption/decryption source: org.bouncycastle.pqc.crypto.mceliece.McElieceCipher
   * @param config McEliece configuration parameters
   */
-class McElieceCryptosystem(config: McElieceConfiguration) {
+class McElieceCryptosystem(config: BasicConfiguration) {
 
   private val sr = new SecureRandom
 
-  val Debug: Boolean = config.debugOptions.verbose
+  // Degree of the finite field GF(2^m)
+  private val m: Int = config.m
+
+  // Error correction capability of the code
+  private val t: Int = config.t
+
+  // Linear code length
+  private val n: Int = 1 << m
+  // Linear code dimension
+  private val k: Int = n - m * t
 
   // Generate original McEliece cryptosystem public and private keys
-  val (publicKey: BCMcEliecePublicKey, privateKey: BCMcEliecePrivateKey, params: McElieceKeyGenParameterSpec) = config match {
-    case file: FileConfiguration =>
+  val (publicKey: BCMcEliecePublicKey, privateKey: BCMcEliecePrivateKey)= {
+    // finite field GF(2^m)
+    val fieldPoly = PolynomialRingGF2.getIrreduciblePolynomial(m)
+    val field = new GF2mField(m, fieldPoly)
 
-    case basic: BasicConfiguration =>
-      val params = new McElieceKeyGenParameterSpec(basic.m, basic.t)
-      val keyPairGenerator = KeyPairGenerator.getInstance(AlgorithmName)
-      keyPairGenerator.initialize(params)
-      val keys = keyPairGenerator.generateKeyPair
-      (keys.getPublic, keys.getPrivate, params)
+    // irreducible Goppa polynomial
+    val gp = new PolynomialGF2mSmallM(field, t, PolynomialGF2mSmallM.RANDOM_IRREDUCIBLE_POLYNOMIAL, sr)
+
+    // generate canonical check matrix
+    val h = GoppaCode.createCanonicalCheckMatrix(field, gp)
+
+    // compute short systematic form of check matrix
+    val mmp = GoppaCode.computeSystematicForm(h, sr)
+    val shortH = mmp.getSecondMatrix
+    val p1 = mmp.getPermutation
+
+    // compute short systematic form of generator matrix
+    val shortG = shortH.computeTranspose.asInstanceOf[GF2Matrix]
+
+    // extend to full systematic form
+    val gPrime = shortG.extendLeftCompactForm
+
+    // obtain number of rows of G (= dimension of the code)
+    val k = shortG.getNumRows
+
+    // generate random invertible (k x k)-matrix S and its inverse S^-1
+    val matrixSandInverse = GF2Matrix.createRandomRegularMatrixAndItsInverse(k, sr)
+
+    // generate random permutation P2
+    val p2 = new Permutation(n, sr)
+
+    // compute public matrix G=S*G'*P2
+    var g = matrixSandInverse(0).rightMultiply(gPrime).asInstanceOf[GF2Matrix]
+    g = g.rightMultiply(p2).asInstanceOf[GF2Matrix]
+
+
+    // generate keys
+    (
+      new BCMcEliecePublicKey(new McEliecePublicKeyParameters(n, t, g)),
+      new BCMcEliecePrivateKey(new McEliecePrivateKeyParameters(n, k, field, gp, p1, p2, matrixSandInverse(1)))
+    )
   }
-  val n: Int = 1 << params.getM // 2^m.
-  // Linear code dimension security parameter k:
-  val k: Int = n - params.getM * params.getT
 
   def encryptVector(m: GF2Vector): GF2Vector = {
     val z = new GF2Vector(n, publicKey.getT, sr)
@@ -59,55 +94,56 @@ class McElieceCryptosystem(config: McElieceConfiguration) {
     encrypt(plainStringMessage.getBytes(McElieceCryptosystem.Charset))
 
   def decrypt(encryptedMessage: Array[Byte]): Array[Byte] = {
-    cipher.init(Cipher.DECRYPT_MODE, privateKey, params)
-    cipher.doFinal(encryptedMessage)
+    val vec = GF2Vector.OS2VP(n, encryptedMessage)
+    val field = privateKey.getField
+    val gp = privateKey.getGoppaPoly
+    val sInv = privateKey.getSInv
+    val p1 = privateKey.getP1
+    val p2 = privateKey.getP2
+    val h = privateKey.getH
+    val qInv = privateKey.getQInv
+
+    // compute permutation P = P1 * P2
+    val p = p1.rightMultiply(p2)
+
+    // compute P^-1
+    val pInv = p.computeInverse
+
+    // compute c P^-1
+    val cPInv = vec.multiply(pInv).asInstanceOf[GF2Vector]
+
+    // compute syndrome of c P^-1
+    val syndrome = h.rightMultiply(cPInv).asInstanceOf[GF2Vector]
+
+    // decode syndrome
+    var z = GoppaCode.syndromeDecode(syndrome, field, gp, qInv)
+    var mSG = cPInv.add(z).asInstanceOf[GF2Vector]
+
+    // multiply codeword with P1 and error vector with P
+    mSG = mSG.multiply(p1).asInstanceOf[GF2Vector]
+    z = z.multiply(p).asInstanceOf[GF2Vector]
+
+    // extract mS (last k columns of mSG)
+    val mS = mSG.extractRightVector(k)
+
+    // compute plaintext vector
+    val mVec = sInv.leftMultiply(mS).asInstanceOf[GF2Vector]
+
+    // compute and return plaintext
+    Vector.computeMessage(mVec)
   }
 
   def decryptString(encryptedByteMessage: Array[Byte]): String =
     new String(decrypt(encryptedByteMessage), McElieceCryptosystem.Charset)
-
-  /*def generateRandomMessage: Array[Byte] = {
-    cipher.init(Cipher.ENCRYPT_MODE, publicKey, params)
-    val plainTextSize = cipher.getBlockSize
-    val mLength = Random.nextInt(plainTextSize) + 1
-    val mBytes = new Array[Byte](mLength)
-    Random.nextBytes(mBytes)
-    mBytes
-  }*/
 
 }
 
 object McElieceCryptosystem {
 
   val Charset: Charset = StandardCharsets.UTF_8
-  // @TODO for simplicity just move it to constructor
-  // @TODO remove abstractions, they ugly (use McElieceCipher)
-  // Load BouncyCastle algorithms
-  Security.addProvider(new BouncyCastlePQCProvider)
-  lazy val AlgorithmName: String = "McEliece"
-  lazy val cipher: Cipher = Cipher.getInstance(AlgorithmName)
 
-  def computeMessageString(mr: GF2Vector): String = new String(Vector.computeMessage(mr), Charset)
+  case class BasicConfiguration(m: Int, t: Int/*, debugOptions: DebugOptions = DebugOptions()*/)
 
-  sealed trait McElieceConfiguration {
-    val debugOptions: DebugOptions
-  }
-
-  /**
-    *
-    * @param m            degree of the finite field GF(2^m)
-    * @param t            error correction capability of the code
-    * @param debugOptions Options for debugging
-    */
-  case class BasicConfiguration(m: Int, t: Int, debugOptions: DebugOptions = DebugOptions()) extends McElieceConfiguration
-
-  /**
-    *
-    * @param filename     File to read mcEliece keys
-    * @param debugOptions Options for debugging
-    */
-  case class FileConfiguration(filename: String, debugOptions: DebugOptions = DebugOptions()) extends McElieceConfiguration
-
-  case class DebugOptions(verbose: Boolean = false, writeToFile: Option[String] = None)
+  //case class DebugOptions(verbose: Boolean = false, writeToFile: Option[String] = None)
 
 }

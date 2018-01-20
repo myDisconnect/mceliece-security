@@ -4,7 +4,8 @@ import org.bouncycastle.pqc.math.linearalgebra.{GF2Matrix, GF2Vector}
 
 /**
   * @todo after finishing all the attacks implement this too :)
-  * @see https://eprint.iacr.org/2017/1139.pdf
+  * @see Decoding Linear Codes with High Error Rate and its Impact for LPN Security, 2017 (https://eprint.iacr.org/2017/1139.pdf)
+  * @see On Computing Nearest Neighbors with Applications to Decoding of Binary Linear Codes, 2015 (http://www.cits.rub.de/imperia/md/content/may/paper/codes.pdf)
   */
 class BothMay {
 

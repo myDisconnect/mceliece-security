@@ -3,12 +3,12 @@ package com.andrius.masterThesis
 import com.andrius.masterThesis.attacks.noncritical.isd.LeeBrickell
 import com.andrius.masterThesis.attacks.critical.{KnownPartialPlaintext, MessageResend, RelatedMessage}
 import com.andrius.masterThesis.mceliece.McElieceCryptosystem
-import com.andrius.masterThesis.mceliece.McElieceCryptosystem.{BasicConfiguration, DebugOptions}
-import com.andrius.masterThesis.utils.Vector
-import org.bouncycastle.crypto.InvalidCipherTextException
+import com.andrius.masterThesis.mceliece.McElieceCryptosystem.BasicConfiguration
+import com.andrius.masterThesis.utils.{Math, Vector}
+import com.typesafe.scalalogging.Logger
 import org.bouncycastle.pqc.math.linearalgebra.GF2Vector
 
-import scala.util.Random
+import scala.collection.mutable.ListBuffer
 
 /**
   * @author Andrius Versockas <andrius.versockas@gmail.com>
@@ -17,6 +17,24 @@ import scala.util.Random
   *       Good conclusions on McEliece: http://re-search.info/sites/default/files/zajac_workshop_2016.pdf
   */
 object Main {
+  val logger = Logger("Main")
+
+  def main(args: Array[String]): Unit = {
+    val configuration = BasicConfiguration(m = 5, t = 2)
+    val mcEliecePKC = new McElieceCryptosystem(configuration)
+    mcEliecePKC.decrypt(mcEliecePKC.encrypt("l"))
+    /*generalizedInformationSetDecoding(configuration)
+    val mb = 1024*1024
+    val runtime = Runtime.getRuntime
+    logger.info("** Used Memory:  " + (runtime.totalMemory - runtime.freeMemory) / mb)
+    logger.info("** Free Memory:  " + runtime.freeMemory / mb)
+    logger.info("** Total Memory: " + runtime.totalMemory / mb)
+    logger.info("** Max Memory:   " + runtime.maxMemory / mb)
+    knownPartialPlaintext(configuration)
+    messageResend(configuration)
+    relatedMessage(configuration)
+*/
+  }
 
   /**
     * Non-Critical: Generalized Information-Set Decoding (GISD) attack
@@ -25,14 +43,19 @@ object Main {
     */
   def generalizedInformationSetDecoding(configuration: BasicConfiguration): Unit = {
     val mcEliecePKC = new McElieceCryptosystem(configuration)
-
-    val msg = Vector.generateMessageVector(mcEliecePKC.publicKey.getK)
-    val cipher = mcEliecePKC.encryptVector(msg)
-
     val leeBrickell = new LeeBrickell(mcEliecePKC.publicKey)
-    val result = leeBrickell.attack(cipher)
 
-    println(result.equals(msg))
+    val timeResults = new ListBuffer[Long]()
+    for (_ <- 0 until 1000) {
+      val msg = Vector.generateMessageVector(mcEliecePKC.publicKey.getK)
+      val cipher = mcEliecePKC.encryptVector(msg)
+
+      val start = System.currentTimeMillis
+
+      leeBrickell.attack(cipher)
+      timeResults += System.currentTimeMillis - start
+    }
+    println(s"Average GISD attack time: ${Math.average(timeResults)} ms")
   }
 
   /**
@@ -40,26 +63,31 @@ object Main {
     *
     * @param configuration McEliece PKC configuration
     */
-  def knownPlainText(configuration: BasicConfiguration): Unit = {
+  def knownPartialPlaintext(configuration: BasicConfiguration): Unit = {
     val mcEliecePKC = new McElieceCryptosystem(configuration)
-
-    val msg = Vector.generateMessageVector(mcEliecePKC.publicKey.getK)
-    val cipher = mcEliecePKC.encryptVector(msg)
+    val partial = new KnownPartialPlaintext(mcEliecePKC.publicKey)
 
     // How many places known
-    val kRight = Random.nextInt(mcEliecePKC.publicKey.getK) + 1 // mcEliecePKC.publicKey.getK / 2
-    val knownRight = msg.extractRightVector(kRight)
+    for (kRight <- 1 until mcEliecePKC.publicKey.getK) {
+      val timeResults = new ListBuffer[Long]()
+      for (_ <- 0 until 1000) {
+        val msg = Vector.generateMessageVector(mcEliecePKC.publicKey.getK)
+        val cipher = mcEliecePKC.encryptVector(msg)
+        val knownRight = msg.extractRightVector(kRight)
 
-    val partial = new KnownPartialPlaintext(mcEliecePKC.publicKey)
-    // Attack counts successful if security complexity was reduced
-    val reducedParameters = partial.attack(knownRight, cipher)
+        val start = System.currentTimeMillis
+        // Attack counts successful if security complexity was reduced
+        val reducedParameters = partial.attack(knownRight, cipher)
 
-    // Use any other decoding attack
-    val leeBrickell = new LeeBrickell(reducedParameters.publicKey)
-    val decodingResult = leeBrickell.attack(reducedParameters.cipher)
-    val result = Vector.concat(decodingResult, knownRight)
+        // Any other decoding attack can be used
+        val leeBrickell = new LeeBrickell(reducedParameters.publicKey)
+        leeBrickell.attack(reducedParameters.cipher)
 
-    println(result.equals(msg))
+        timeResults += System.currentTimeMillis - start
+      }
+      println(s"Average Known Partial Plaintext + GISD attacks time with $kRight/${mcEliecePKC.publicKey.getK} " +
+        s"known: ${Math.average(timeResults)} ms")
+    }
   }
 
   /**
@@ -69,31 +97,40 @@ object Main {
     */
   def messageResend(configuration: BasicConfiguration): Unit = {
     val mcEliecePKC = new McElieceCryptosystem(configuration)
-
-    val msg = Vector.generateMessageVector(mcEliecePKC.publicKey.getK)
-
-    val cipher1 = mcEliecePKC.encryptVector(msg)
-    val cipher2 = mcEliecePKC.encryptVector(msg)
-    if (cipher1.equals(cipher2)) {
-      throw new Exception("Attack cannot be successful, message m encoded with same error vectors (e1=e2)")
-    }
-    var found = false
-    var tries = 0
-    var result: GF2Vector = null
     val messageResend = new MessageResend(mcEliecePKC.publicKey)
-    while (!found) {
+
+    val timeResults = new ListBuffer[Long]()
+    var extraTries = 0
+    var identicalErrors = 0
+    for (_ <- 0 until 1000) {
       try {
-        tries += 1
-        result = messageResend.attack(cipher1, cipher2)
-        // Test to see if received vector padding makes sense
-        Vector.computeMessage(result)
-        found = true
+        val msg = Vector.generateMessageVector(mcEliecePKC.publicKey.getK)
+
+        val cipher1 = mcEliecePKC.encryptVector(msg)
+        val cipher2 = mcEliecePKC.encryptVector(msg)
+        if (cipher1.equals(cipher2)) {
+          throw new IllegalArgumentException("Attack cannot be successful, message m encoded with same error vectors (e1=e2)")
+        }
+        var found = false
+        val start = System.currentTimeMillis
+        while (!found) {
+            // It is possible to check if padding is correct (filter failures)
+            // Vector.computeMessage(messageResend.attack(cipher1, cipher2))
+            if (messageResend.attack(cipher1, cipher2).equals(msg)) {
+              timeResults += System.currentTimeMillis - start
+              found = true
+            } else {
+              extraTries += 1
+            }
+        }
       } catch {
-        case _: InvalidCipherTextException =>
-        // Error vectors collision
+        case _: IllegalArgumentException =>
+          identicalErrors += 1
       }
+      //println(messageResend.attack(cipher1, cipher2).equals(msg), tries)
     }
-    println(result.equals(msg), tries)
+    println(s"Average Message-Resend Attack time: ${Math.average(timeResults)} ms with extra: $extraTries iterations" +
+      s" and $identicalErrors identical error vectors")
   }
 
   /**
@@ -101,79 +138,42 @@ object Main {
     *
     * @param configuration McEliece PKC configuration
     */
-  def messageRelated(configuration: BasicConfiguration): Unit = {
+  def relatedMessage(configuration: BasicConfiguration): Unit = {
     val mcEliecePKC = new McElieceCryptosystem(configuration)
-
-    val msg1 = Vector.generateMessageVector(mcEliecePKC.publicKey.getK)
-    // For example, we know that message vector always differ in every 32 position
-    val mDelta = new GF2Vector(mcEliecePKC.publicKey.getK, Array.fill((mcEliecePKC.publicKey.getK - 1) / 32 + 1)(1))
-    val msg2 = msg1.add(mDelta).asInstanceOf[GF2Vector]
-
-    val cipher1 = mcEliecePKC.encryptVector(msg1)
-    val cipher2 = mcEliecePKC.encryptVector(msg2)
-
-    if (cipher1.equals(cipher2)) {
-      throw new Exception("Attack cannot be successful, message m encoded with same error vectors (e1=e2)")
-    }
-    var found = false
-    var tries = 0
-    var result: GF2Vector = null
     val relatedMessage = new RelatedMessage(mcEliecePKC.publicKey)
-    while (!found) {
+
+    val timeResults = new ListBuffer[Long]()
+    var extraTries = 0
+    var identicalErrors = 0
+    for (_ <- 0 until 1000) {
       try {
-        tries += 1
-        result = relatedMessage.attack(cipher1, cipher2, mDelta)
-        // Test to see if received vector padding makes sense
-        Vector.computeMessage(result)
-        found = true
+        val msg1 = Vector.generateMessageVector(mcEliecePKC.publicKey.getK)
+        // For example, we know that message vector always differ in every 32 position
+        val mDelta = new GF2Vector(mcEliecePKC.publicKey.getK, Array.fill((mcEliecePKC.publicKey.getK - 1) / 32 + 1)(1))
+        val msg2 = msg1.add(mDelta).asInstanceOf[GF2Vector]
+
+        val cipher1 = mcEliecePKC.encryptVector(msg1)
+        val cipher2 = mcEliecePKC.encryptVector(msg2)
+
+        if (cipher1.equals(cipher2)) {
+          throw new IllegalArgumentException("Attack cannot be successful, message m encoded with same error vectors (e1=e2)")
+        }
+        var found = false
+        val start = System.currentTimeMillis
+        while (!found) {
+          if (relatedMessage.attack(cipher1, cipher2, mDelta).equals(msg1)) {
+            timeResults += System.currentTimeMillis - start
+            found = true
+          } else {
+            extraTries += 1
+          }
+        }
       } catch {
-        case _: InvalidCipherTextException =>
-        // Error vectors collision
+        case _: IllegalArgumentException =>
+          identicalErrors += 1
       }
     }
-    println(result.equals(msg1), tries)
-  }
-
-  def main(args: Array[String]): Unit = {
-    val configuration = BasicConfiguration(m = 5, t = 2)
-    //generalizedInformationSetDecoding(configuration)
-    //knownPlainText(configuration)
-    //messageResend(configuration)
-    //messageRelated(configuration)
-
-    //for (i <- 0 until 10)
-      //println(McElieceCryptosystem.computeMessageString(partial.attack(msgPartial)))
-
-    /* Random
-    val cipher = new McElieceCipher
-    cipher.init(true, mcEliecePKC.publicKey)
-    End Random*/
-    //mcEliecePKC.publicKey.
-    // We intercept user's cypher and prepare data
-    //val encryptedVector = new GF2Vector(mcEliecePKC.publicKey.getN, LittleEndianConversions.toIntArray(encryptedMsg))
-    //val parityCheckMatrixH = Matrix.convertGeneratorMatrixToParityCheckMatrix(mcEliecePKC.publicKey.getG)
-    //val syndrome = parityCheckMatrixH.rightMultiply(encryptedVector).asInstanceOf[GF2Vector]
-    //val oracle = new StdPlainPkcs1Oracle(keyPair.getPublic(), TestPkcs1Oracle.OracleType.MANGER_0x00, cipher.getBlockSize())
-    /*(new BothMay).attack(
-      syndrome,
-      parityCheckMatrixH
-    )*/
-
-    /*
-    Pkcs1Oracle oracle = new StdPlainPkcs1Oracle(keyPair.getPublic(), TestPkcs1Oracle.OracleType.TTT,
-      cipher.getBlockSize());
-
-    Bleichenbacher attacker = new Bleichenbacher(message, oracle, true);
-    attacker.attack();
-    BigInteger solution = attacker.getSolution();
-
-    Assert.assertArrayEquals("The computed solution for Bleichenbacher must be equal to the original message",
-      message, solution.toByteArray());
-      */
-    //
-    //val start = System.currentTimeMillis
-    //val msg = mcEliece.encryptRandomMessage
-    //println(mcEliecePKC.decryptString(mcEliecePKC.encrypt(msg)), System.currentTimeMillis - start)
-
+    println(s"Average Related-Message Attack time: ${Math.average(timeResults)} ms with extra: $extraTries iterations" +
+      s" and $identicalErrors identical error vectors")
   }
 }

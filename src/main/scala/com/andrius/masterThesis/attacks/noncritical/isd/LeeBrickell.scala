@@ -42,6 +42,7 @@ class LeeBrickell(publicKey: BCMcEliecePublicKey) {
     while (!found) {
       // Step 1
       // We randomise information-set columns, because you might get stuck for a long time with bad choices
+      // @todo think about dictionary vs precomputing https://stackoverflow.com/questions/30112035/sample-without-replacement-or-duplicates-in-r
       val i = Math.sample((0 until n).toList, k)
       if (!dictionary.contains(i)) {
         dictionary += i
