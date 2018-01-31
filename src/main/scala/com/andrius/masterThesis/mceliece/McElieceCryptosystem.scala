@@ -71,7 +71,7 @@ class McElieceCryptosystem(config: BasicConfiguration) {
     val g = matrixSandInverse(0).rightMultiply(gPrime).asInstanceOf[GF2Matrix].rightMultiply(p2).asInstanceOf[GF2Matrix]
 
     // generate keys
-  McElieceCryptosystem.McElieceKeyPair(
+    McElieceCryptosystem.McElieceKeyPair(
       new BCMcEliecePublicKey(new McEliecePublicKeyParameters(n, t, g)),
       new BCMcEliecePrivateKey(new McEliecePrivateKeyParameters(n, k, field, gp, p1, p2, matrixSandInverse(1)))
     )

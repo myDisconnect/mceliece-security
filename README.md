@@ -1,12 +1,12 @@
 # Master's thesis: Study of the security of McEliece public-key
-This repository contains implementations of well known attacks against the original McEliece cryptosystem.
+This repository contains implementations of well known attacks against the original McEliece cryptosystem with binary Goppa codes.
 
 ## Structural attacks
-- [ ] Support-splitting
+- [x] Support Splitting Algorithm (SSA)
 
 ## Non-critical attacks
-- [x] Generalized Information Set Decoding (generalized Lee-Brickell algorithm)
-- [x] Searching for Low Weight Codewords (Stern algorithm)
+- [x] Generalized Information Set Decoding (GISD) (based on Lee-Brickell algorithm)
+- [ ] Finding Low Weight Codewords in slightly larger code (Canteu)
 
 ## Critical attacks
 - [x] Known Partial Plaintext

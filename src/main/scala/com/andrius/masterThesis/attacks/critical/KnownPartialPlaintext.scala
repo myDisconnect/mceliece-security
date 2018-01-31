@@ -9,6 +9,8 @@ import org.bouncycastle.pqc.math.linearalgebra.{GF2Matrix, GF2Vector}
 /**
   * Known partial plaintext attack
   *
+  * @see A. Canteaut, N, Sendrier. Cryptanalysis of the Original McEliece Cryptosystem (https://link.springer.com/content/pdf/10.1007/3-540-49649-1_16.pdf)
+  * @see K. Kobara, H. Imai. Semantically secure McEliece public-key cryptosystems-conversions for McEliece PKC (https://link.springer.com/content/pdf/10.1007/3-540-44586-2_2.pdf)
   * @param publicKey McEliece public key
   */
 class KnownPartialPlaintext(publicKey: BCMcEliecePublicKey) {

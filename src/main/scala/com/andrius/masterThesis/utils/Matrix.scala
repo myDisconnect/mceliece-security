@@ -11,10 +11,10 @@ import scala.util.control.Breaks.{break, breakable}
 object Matrix {
 
   /**
-    * Get any generator matrix and convert it to parity check matrix (if possible)
+    * Try to convert generator matrix to parity check matrix in standard form [x | I_n]
     *
     * @param in matrix
-    * @return
+    * @return parity check matrix in standard form [x | I_n]
     */
   def convertGeneratorMatrixToParityCheckMatrix(in: GF2Matrix): GF2Matrix = {
     reorderRowsToStandardForm(reducedRowEchelonMatrix(in))
@@ -145,48 +145,77 @@ object Matrix {
     }
   }
 
-  def swapRows(in: Array[Array[Int]], first: Int, second: Int): Unit = {
-    val tmp = in(first)
-    in(first) = in(second)
-    in(second) = tmp
+  /**
+    * Swap rows of a given matrix two dimensional array
+    *
+    * @param in      input matrix int array
+    * @param posFrom row position to swap from
+    * @param posTo   row position to swap to
+    */
+  def swapRows(in: Array[Array[Int]], posFrom: Int, posTo: Int): Unit = {
+    val tmp = in(posFrom)
+    in(posFrom) = in(posTo)
+    in(posTo) = tmp
   }
 
   /**
+    * Swap columns of a given matrix two dimensional array
+    *
     * @todo more efficient swap
-    * @param in
-    * @param i
-    * @param j
+    * @param in      input matrix int array
+    * @param posFrom column position to swap from
+    * @param posTo   column position to swap to
     */
-  def swapColumns(in: Array[Array[Int]], i: Int, j: Int): Unit = {
-    //val tmp = cloneArray(in)
-    val column1: Array[Int] = getColumn(in, i)
-    val column2: Array[Int] = getColumn(in, j)
-    setColumn(in, column1, j)
-    setColumn(in, column2, i)
+  def swapColumns(in: Array[Array[Int]], posFrom: Int, posTo: Int): Unit = {
+    val column1: Array[Int] = getColumn(in, posFrom)
+    val column2: Array[Int] = getColumn(in, posTo)
+    setColumn(in, column1, posTo)
+    setColumn(in, column2, posFrom)
   }
 
-  def getColumn(in: Array[Array[Int]], i: Int): Array[Int] = {
+  /**
+    * Get matrix column (uses GF2Matrix.getIntArray)
+    *
+    * @param in  input matrix int array
+    * @param pos position of the column elements in the matrix
+    * @return values of column. Possible values: array of [0,1]
+    */
+  def getColumn(in: Array[Array[Int]], pos: Int): Array[Int] = {
     var result = ListBuffer[Int]()
-    val elem = i % 32
-    val length = i / 32
+    val elem = pos % 32
+    val length = pos / 32
     for (i <- in.indices) {
       result += (in(i)(length) >>> elem) & 1
     }
     result.toArray
   }
 
-  def setColumn(in: Array[Array[Int]], ints: Array[Int], i: Int): Unit = {
-    val elem = i % 32
-    val length = i / 32
+  /**
+    * Set matrix column (changes received matrix two dimensional Int array)
+    *
+    * @param in     input vector int array
+    * @param values values to be set. Allowed values for single value: 0,1
+    * @param pos    position of the element in the vector
+    */
+  def setColumn(in: Array[Array[Int]], values: Array[Int], pos: Int): Unit = {
+    val elem = pos % 32
+    val length = pos / 32
     for (i <- in.indices) {
       val a = in(i)(length)
       val el = (a >>> elem) & 1
-      if (el != ints(i)) {
+      if (el != values(i)) {
         in(i)(length) = a ^ (1 << elem)
       }
     }
   }
 
+  /**
+    * Create new matrix from column list
+    *
+    * @param in      input matrix
+    * @param columns columns to extract from input matrix
+    * @return
+    */
   def matrixFromColumns(in: GF2Matrix, columns: List[Int]): GF2Matrix = {
     val out = Array.ofDim[Int](in.getNumRows, (columns.length - 1) / 32 + 1)
     val matrix = in.getIntArray
@@ -198,6 +227,13 @@ object Matrix {
     new GF2Matrix(columns.length, out)
   }
 
+  /**
+    * Create new matrix from row list
+    *
+    * @param in   input matrix
+    * @param rows rows to extract from input matrix
+    * @return
+    */
   def matrixFromRows(in: GF2Matrix, rows: List[Int]): GF2Matrix = {
     val out = Array.ofDim[Int](rows.length, in.getLength)
 
@@ -206,6 +242,28 @@ object Matrix {
     }
 
     new GF2Matrix(in.getNumColumns, out)
+  }
+
+  /**
+    * Convert two dimensional sequence of 0 and 1 to GF2Matrix
+    *
+    * @param sequence two dimensional sequence containing 0 or 1
+    * @return
+    */
+  def createGF2Matrix(sequence: Seq[Seq[Int]]): GF2Matrix = {
+    val numRows = sequence.length
+    val numColumns = sequence.head.length
+    val out = Array.ofDim[Int](numRows, (numColumns - 1) / 32 + 1)
+    for {
+      i <- 0 until numRows
+      j <- 0 until numColumns
+    } yield {
+      val q = j >> 5
+      val r = j & 0x1f
+      out(i)(q) += (1 << r) * sequence(i)(j)
+    }
+
+    new GF2Matrix(numColumns, out)
   }
 
 }

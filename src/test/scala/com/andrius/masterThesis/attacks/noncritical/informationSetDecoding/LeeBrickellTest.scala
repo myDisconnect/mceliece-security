@@ -3,8 +3,9 @@ package com.andrius.masterThesis.attacks.noncritical.informationSetDecoding
 import com.andrius.masterThesis.mceliece.McElieceCryptosystem
 import com.andrius.masterThesis.mceliece.McElieceCryptosystem.BasicConfiguration
 import com.andrius.masterThesis.utils.Vector
+import org.scalatest.FlatSpec
 
-class LeeBrickellTest extends org.scalatest.FlatSpec {
+class LeeBrickellTest extends FlatSpec {
 
   behavior of "LeeBrickellTest"
 

@@ -39,8 +39,7 @@ class LeeBrickell(publicKey: BCMcEliecePublicKey) {
     // Dictionary should be optimised
     var dictionary = new ListBuffer[List[Int]]()
     while (!found) {
-      // Step 1
-      // We randomise information-set columns, because you might get stuck for a long time with bad choices
+      // Step 1 We randomise information-set columns
       // @todo think about dictionary vs precomputing vs nothing https://stackoverflow.com/questions/30112035/sample-without-replacement-or-duplicates-in-r
       val i = Math.sample((0 until n).toList, k)
       if (!dictionary.contains(i)) {
@@ -52,7 +51,7 @@ class LeeBrickell(publicKey: BCMcEliecePublicKey) {
           // Step 2
           val ci = vectorFromColumns(c, i)
           val y = c.add(gt.leftMultiply(ci)).asInstanceOf[GF2Vector]
-          // Step 3
+          // Step 3 iterate over all possible gt (new generator matrix) codewords
           for {
             pi <- Range.inclusive(0, t)
             a <- Range(0, k).combinations(pi)

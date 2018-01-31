@@ -18,7 +18,7 @@ object Vector {
     * @return
     */
   def generateMessageVector(k: Int): GF2Vector = {
-    val maxPlainTextSize = k >> 3
+    val maxPlainTextSize = (k - 1) >> 3
     val out = Array.fill[Byte](maxPlainTextSize)(0)
     Random.nextBytes(out)
 
@@ -65,6 +65,13 @@ object Vector {
     mBytes
   }
 
+  /**
+    * Merge two GF2Vector into one
+    *
+    * @param left  GF2Vector
+    * @param right GF2Vector
+    * @return merged GF2Vector
+    */
   def concat(left: GF2Vector, right: GF2Vector): GF2Vector = {
     val out = IntUtils.clone(left.getVecArray)
     for (i <- 0 until right.getLength) {
@@ -73,6 +80,13 @@ object Vector {
     new GF2Vector(left.getLength + right.getLength, out)
   }
 
+  /**
+    * Create new vector from column list
+    *
+    * @param in      input vector
+    * @param columns columns to extract from input vector
+    * @return new GF2Vector from column list
+    */
   def vectorFromColumns(in: GF2Vector, columns: List[Int]): GF2Vector = {
     val out = Array.fill((columns.length - 1) / 32 + 1)(0)
     val vector = in.getVecArray
@@ -82,20 +96,52 @@ object Vector {
     new GF2Vector(columns.length, out)
   }
 
-  def getColumn(in: Array[Int], i: Int): Int = {
-    val elem = i % 32
-    val length = i / 32
+  /**
+    * Get vector column (uses GF2Vector.getVecArray)
+    *
+    * @param in  input vector int array
+    * @param pos position of the element in the vector
+    * @return value of column. Possible values: 0,1
+    */
+  def getColumn(in: Array[Int], pos: Int): Int = {
+    val elem = pos % 32
+    val length = pos / 32
     (in(length) >>> elem) & 1
   }
 
-  def setColumn(in: Array[Int], int: Int, i: Int): Unit = {
-    val elem = i % 32
-    val length = i / 32
+  /**
+    * Set vector column (changes received vector Int array)
+    *
+    * @param in    input vector int array
+    * @param value value to be set. Allowed values: 0,1
+    * @param pos   position of the element in the vector
+    */
+  def setColumn(in: Array[Int], value: Int, pos: Int): Unit = {
+    val elem = pos % 32
+    val length = pos / 32
     val a = in(length)
     val el = (a >>> elem) & 1
-    if (el != int) {
+    if (el != value) {
       in(length) = a ^ (1 << elem)
     }
+  }
+
+  /**
+    * Convert sequence of 0 and 1 to GF2Vector
+    *
+    * @param sequence elements containing 0 or 1
+    * @return
+    */
+  def createGF2Vector(sequence: Seq[Int]): GF2Vector = {
+    val length = sequence.length
+    val out = Array.fill((length - 1) / 32 + 1)(0)
+
+    for (i <- 0 until length) {
+      val q = i >> 5
+      val r = i & 0x1f
+      out(q) += (1 << r) * sequence(i)
+    }
+    new GF2Vector(length, out)
   }
 
 }

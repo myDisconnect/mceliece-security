@@ -34,4 +34,35 @@ object Math {
     items.foldLeft((0l, 1))((acc, i) => (acc._1 + (i - acc._1) / acc._2, acc._2 + 1))._1
   }
 
+  /**
+    * Combinations with repetitions
+    *
+    * @see Modified version of https://rosettacode.org/wiki/Combinations_with_repetitions
+    * @param source source of combination with repetitions
+    * @param size   size of resulting collection
+    * @tparam A type
+    * @return
+    */
+  def combinationWithRepetition[A](source: Seq[A], size: Int): Iterator[Seq[A]] =
+    Seq.fill(size)(source).flatten.combinations(size)
+
+  /**
+    * Calculates all permutations taking n elements of the source List,
+    * with repetitions.
+    * Precondition: input.length > 0 && n > 0
+    *
+    * @see https://rosettacode.org/wiki/Permutations_with_repetitions
+    * @param source source of combination with repetitions
+    * @param size   size of resulting collection
+    * @tparam A type
+    * @return
+    */
+  def permutationsWithRepetitions[A](source: Seq[A], size: Int): Seq[List[A]] = {
+    require(source.nonEmpty && size > 0)
+    size match {
+      case 1 => for (el <- source) yield List(el)
+      case _ => for (el <- source; perm <- permutationsWithRepetitions(source, size - 1)) yield el :: perm
+    }
+  }
+
 }
