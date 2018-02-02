@@ -43,6 +43,7 @@ class McElieceCryptosystem(config: BasicConfiguration) {
 
     // irreducible Goppa polynomial
     val gp = new PolynomialGF2mSmallM(field, t, PolynomialGF2mSmallM.RANDOM_IRREDUCIBLE_POLYNOMIAL, sr)
+    println("Original poly: " + gp)
 
     // generate canonical check matrix
     val h = GoppaCode.createCanonicalCheckMatrix(field, gp)
@@ -90,7 +91,7 @@ class McElieceCryptosystem(config: BasicConfiguration) {
     val e = new GF2Vector(n, publicKey.getT, sr)
     val g = publicKey.getG
     val mG = g.leftMultiply(m)
-    // m*G+e
+    // compute mG+e
     mG.add(e).asInstanceOf[GF2Vector]
   }
 

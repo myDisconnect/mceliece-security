@@ -5,5 +5,5 @@ object Attacks {
   val KnownPartialPlaintext = 2
   val MessageResend         = 3
   val RelatedMessage        = 4
-  val Structural            = 5
+  val SupportSplitting      = 5
 }

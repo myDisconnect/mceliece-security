@@ -6,7 +6,7 @@ This repository contains implementations of well known attacks against the origi
 
 ## Non-critical attacks
 - [x] Generalized Information Set Decoding (GISD) (based on Lee-Brickell algorithm)
-- [ ] Finding Low Weight Codewords in slightly larger code (Canteu)
+- [ ] Finding Low Weight Codewords in slightly larger code (maybe Both-May algorithm?)
 
 ## Critical attacks
 - [x] Known Partial Plaintext

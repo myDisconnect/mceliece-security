@@ -3,6 +3,7 @@ package com.andrius.masterThesis
 import com.andrius.masterThesis.attacks.Attacks
 import com.andrius.masterThesis.attacks.noncritical.informationSetDecoding.LeeBrickell
 import com.andrius.masterThesis.attacks.critical.{KnownPartialPlaintext, MessageResend, RelatedMessage}
+import com.andrius.masterThesis.attacks.structural.SupportSplittingAlgorithm
 import com.andrius.masterThesis.mceliece.McElieceCryptosystem
 import com.andrius.masterThesis.mceliece.McElieceCryptosystem.BasicConfiguration
 import com.andrius.masterThesis.utils.{Math, Vector}
@@ -31,6 +32,7 @@ object Main {
     Console.println(s"${Attacks.KnownPartialPlaintext} - Known Partial Plaintext")
     Console.println(s"${Attacks.MessageResend} - Message Resend")
     Console.println(s"${Attacks.RelatedMessage} - Related Message")
+    //Console.println(s"${Attacks.SupportSplitting} - Support Splitting Algorithm")
     StdIn.readInt() match {
       case Attacks.GISD =>
         generalizedInformationSetDecoding(configuration)
@@ -40,9 +42,31 @@ object Main {
         messageResend(configuration)
       case Attacks.RelatedMessage =>
         relatedMessage(configuration)
+      case Attacks.SupportSplitting =>
+        Console.println("Currently not stable enough to attack")
+        //supportSplittingAlgorithm(configuration)
       case _ =>
         throw new Exception("Unknown attack specified")
     }
+  }
+
+  /**
+    * Structural: Support Splitting Algorithm attack
+    *
+    * @param configuration McEliece PKC configuration
+    */
+  def supportSplittingAlgorithm(configuration: BasicConfiguration, iterations: Int = 1000): Unit = {
+    val mcEliecePKC = new McElieceCryptosystem(configuration)
+    val ssa = new SupportSplittingAlgorithm(mcEliecePKC.publicKey)
+
+    val timeResults = new ListBuffer[Long]()
+    for (_ <- 0 until iterations) {
+      val start = System.currentTimeMillis
+
+      ssa.attack()
+      timeResults += System.currentTimeMillis - start
+    }
+    println(s"Average Support Splitting Algorithm attack time: ${Math.average(timeResults)} ms (from $iterations iterations)")
   }
 
   /**
