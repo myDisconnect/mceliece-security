@@ -1,7 +1,7 @@
 package com.andrius.masterThesis.attacks.noncritical.informationSetDecoding
 
 import com.andrius.masterThesis.mceliece.McElieceCryptosystem
-import com.andrius.masterThesis.mceliece.McElieceCryptosystem.BasicConfiguration
+import com.andrius.masterThesis.mceliece.McElieceCryptosystem.Configuration
 import com.andrius.masterThesis.utils.Vector
 import org.scalatest.FlatSpec
 
@@ -10,7 +10,7 @@ class LeeBrickellTest extends FlatSpec {
   behavior of "LeeBrickellTest"
 
   it should "attack and never fail" in {
-    val configuration = BasicConfiguration(m = 5, t = 2)
+    val configuration = Configuration(m = 5, t = 2)
 
     for (_ <- 0 until 5) {
       val mcEliecePKC = new McElieceCryptosystem(configuration)

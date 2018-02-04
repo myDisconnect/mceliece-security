@@ -45,14 +45,18 @@ class SupportSplittingAlgorithm {
 
     var found = false
     var permutationMap = mutable.Map.empty[Int, Int]
-    while (!found) {
+    var i = 0
+    while (!found && i < n) {
       val c = getRandomGoppaCodeGeneratorMatrix(field, sr)
       val cCodewords = generateAllCodewords(c)
       permutationMap = ssa(gCodewords, cCodewords)
-      println(permutationMap, s"size: ${permutationMap.size}")
+      // println(permutationMap, s"size: ${permutationMap.size}")
       if (permutationMap.size == n) {
         found = true
+        println("god")
+        println(permutationMap, s"size: ${permutationMap.size}")
       }
+      i += 1
     }
     //permutationMap
     //

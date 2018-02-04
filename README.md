@@ -2,7 +2,7 @@
 This repository contains implementations of well known attacks against the original McEliece cryptosystem with binary Goppa codes.
 
 ## Structural attacks
-- [x] Support Splitting Algorithm (SSA)
+- [ ] Support Splitting Algorithm (SSA) (In-Progress, currently unpredictable)
 
 ## Non-critical attacks
 - [x] Generalized Information Set Decoding (GISD) (based on Lee-Brickell algorithm)
@@ -17,3 +17,9 @@ This repository contains implementations of well known attacks against the origi
 - [ ] Brute-force
 - [ ] Statistical Decoding
 
+
+## Prerequisites
+Java 1.8
+
+To run the project:
+  > java -jar McEliece_attacks_v1.jar

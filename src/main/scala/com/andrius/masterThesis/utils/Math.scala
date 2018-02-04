@@ -30,8 +30,8 @@ object Math {
     * @param items items
     * @return
     */
-  def average(items: Seq[Long]): Long = {
-    items.foldLeft((0l, 1))((acc, i) => (acc._1 + (i - acc._1) / acc._2, acc._2 + 1))._1
+  def average(items: Seq[Long]): String = {
+    items.foldLeft((0.0, 1)) ((acc, i) => (acc._1 + (i - acc._1) / acc._2, acc._2 + 1))._1.formatted("%.3f")
   }
 
   /**

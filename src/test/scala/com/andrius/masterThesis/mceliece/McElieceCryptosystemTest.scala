@@ -1,13 +1,13 @@
 package com.andrius.masterThesis.mceliece
 
-import com.andrius.masterThesis.mceliece.McElieceCryptosystem.BasicConfiguration
+import com.andrius.masterThesis.mceliece.McElieceCryptosystem.Configuration
 import com.andrius.masterThesis.utils.Vector
 import org.scalatest.FlatSpec
 
 class McElieceCryptosystemTest extends FlatSpec {
 
   behavior of "McElieceCryptosystemTest"
-  val configuration = BasicConfiguration(m = 5, t = 2)
+  val configuration = Configuration(m = 5, t = 2)
   val mcEliecePKC = new McElieceCryptosystem(configuration)
 
   it should "encrypt and decrypt bytes" in {
@@ -33,6 +33,5 @@ class McElieceCryptosystemTest extends FlatSpec {
       "Could not something wrong with encryption/decryption"
     )
   }
-
 
 }

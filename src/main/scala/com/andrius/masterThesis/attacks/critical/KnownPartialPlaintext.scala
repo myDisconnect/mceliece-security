@@ -21,18 +21,18 @@ class KnownPartialPlaintext(publicKey: BCMcEliecePublicKey) {
 
   /**
     *
-    * @param cKnownRight known message vector
-    * @param c           cipher
+    * @param knownRight known message vector from right
+    * @param c          cipher
     * @return
     */
-  def attack(cKnownRight: GF2Vector, c: GF2Vector): ReducedSecurityComplexity = {
-    val kRight = cKnownRight.getLength
+  def attack(knownRight: GF2Vector, c: GF2Vector): ReducedSecurityComplexity = {
+    val kRight = knownRight.getLength
     val kLeft = k - kRight
 
     val gRight = Matrix.matrixFromRows(g, Range(kLeft, k).toList)
     val gLeft = Matrix.matrixFromRows(g, Range(0, kLeft).toList)
 
-    val cNew = c.add(gRight.leftMultiply(cKnownRight)).asInstanceOf[GF2Vector]
+    val cNew = c.add(gRight.leftMultiply(knownRight)).asInstanceOf[GF2Vector]
     val pubKeyNew = new BCMcEliecePublicKey(new McEliecePublicKeyParameters(n, t, gLeft))
 
     ReducedSecurityComplexity(cNew, pubKeyNew)

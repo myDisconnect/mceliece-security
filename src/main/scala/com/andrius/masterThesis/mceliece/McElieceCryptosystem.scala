@@ -4,7 +4,7 @@ import java.nio.charset.{Charset, StandardCharsets}
 import java.security._
 
 import com.andrius.masterThesis.mceliece.McElieceCryptosystem._
-import com.andrius.masterThesis.utils.Vector
+import com.andrius.masterThesis.utils.{Logging, Vector}
 import org.bouncycastle.pqc.crypto.mceliece.{McEliecePrivateKeyParameters, McEliecePublicKeyParameters}
 import org.bouncycastle.pqc.jcajce.provider.mceliece.{BCMcEliecePrivateKey, BCMcEliecePublicKey}
 import org.bouncycastle.pqc.math.linearalgebra.{GF2Matrix, GF2Vector, GF2mField, GoppaCode, Permutation, PolynomialGF2mSmallM, PolynomialRingGF2}
@@ -19,7 +19,7 @@ import org.bouncycastle.pqc.math.linearalgebra.{GF2Matrix, GF2Vector, GF2mField,
   * @see for encryption/decryption implementation source: org.bouncycastle.pqc.crypto.mceliece.McElieceCipher
   * @param config McEliece configuration parameters
   */
-class McElieceCryptosystem(config: BasicConfiguration) {
+class McElieceCryptosystem(config: Configuration) {
 
   private val sr = new SecureRandom
 
@@ -43,7 +43,6 @@ class McElieceCryptosystem(config: BasicConfiguration) {
 
     // irreducible Goppa polynomial
     val gp = new PolynomialGF2mSmallM(field, t, PolynomialGF2mSmallM.RANDOM_IRREDUCIBLE_POLYNOMIAL, sr)
-    println("Original poly: " + gp)
 
     // generate canonical check matrix
     val h = GoppaCode.createCanonicalCheckMatrix(field, gp)
@@ -70,7 +69,9 @@ class McElieceCryptosystem(config: BasicConfiguration) {
 
     // compute public matrix G=S*G'*P2
     val g = matrixSandInverse(0).rightMultiply(gPrime).asInstanceOf[GF2Matrix].rightMultiply(p2).asInstanceOf[GF2Matrix]
-
+    if (config.verbose.keyPairGeneration) {
+      Logging.keyPairGenerationResults(gp, gPrime, matrixSandInverse(0), p1.rightMultiply(p2))
+    }
     // generate keys
     McElieceCryptosystem.McElieceKeyPair(
       new BCMcEliecePublicKey(new McEliecePublicKeyParameters(n, t, g)),
@@ -91,6 +92,9 @@ class McElieceCryptosystem(config: BasicConfiguration) {
     val e = new GF2Vector(n, publicKey.getT, sr)
     val g = publicKey.getG
     val mG = g.leftMultiply(m)
+    if (config.verbose.cipherGeneration) {
+      Logging.cipherGenerationResults(m, mG.asInstanceOf[GF2Vector], e)
+    }
     // compute mG+e
     mG.add(e).asInstanceOf[GF2Vector]
   }
@@ -167,11 +171,18 @@ object McElieceCryptosystem {
 
   val Charset: Charset = StandardCharsets.UTF_8
 
-  case class BasicConfiguration(m: Int, t: Int) {
+  case class Configuration(m: Int, t: Int, verbose: VerboseOptions = VerboseOptions()) {
     val n: Int = 1 << m
     val k: Int = n - m * t
   }
 
   case class McElieceKeyPair(publicKey: BCMcEliecePublicKey, privateKey: BCMcEliecePrivateKey)
+
+  case class VerboseOptions(
+                             keyPairGeneration: Boolean = false,
+                             cipherGeneration: Boolean = false,
+                             partialResults: Boolean = true,
+                             totalResults: Boolean = true
+                           )
 
 }
