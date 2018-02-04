@@ -18,8 +18,12 @@ This repository contains implementations of well known attacks against the origi
 - [ ] Statistical Decoding
 
 
-## Prerequisites
-Java 1.8
+# Requirements
+* Java Runtime Environment 8 (JRE 8).
 
-To run the project:
-  > java -jar McEliece_attacks_v1.jar
+## Running the project
+ > java -Xmx15g -Xms15g -jar McEliece_attacks_v1.jar
+
+Here you need to specify the Xms and Xmx parameters according to your machine:
+* `Xmx` - specifies the maximum memory allocation pool for a Java Virtual Machine (JVM).
+* `Xms` - specifies the initial memory allocation pool for a Java Virtual Machine (JVM).

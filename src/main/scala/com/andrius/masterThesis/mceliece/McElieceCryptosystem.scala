@@ -182,7 +182,8 @@ object McElieceCryptosystem {
                              keyPairGeneration: Boolean = false,
                              cipherGeneration: Boolean = false,
                              partialResults: Boolean = true,
-                             totalResults: Boolean = true
+                             totalResults: Boolean = true,
+                             ramUsage: Boolean = false
                            )
 
 }

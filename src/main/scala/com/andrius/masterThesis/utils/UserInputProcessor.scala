@@ -37,10 +37,11 @@ object UserInputProcessor {
   }
 
   def getVerboseOptions: VerboseOptions = {
-    val defaultKeyPairGeneration = YesNoAnswer.No
-    val defaultCipherGeneration = YesNoAnswer.No
-    val defaultPartialResults = YesNoAnswer.Yes
-    val defaultTotalResults = YesNoAnswer.Yes
+    val defaultKeyPairGeneration  = YesNoAnswer.No
+    val defaultCipherGeneration   = YesNoAnswer.No
+    val defaultPartialResults     = YesNoAnswer.Yes
+    val defaultTotalResults       = YesNoAnswer.Yes
+    val defaultRamUsageResults    = YesNoAnswer.No
 
     Console.println(s"${printDoYouWantToLog("public/private keys generation", defaultKeyPairGeneration)}")
     val keyPairGeneration = consoleBooleanAnswer(getStringOrDefault(StdIn.readLine(), defaultKeyPairGeneration))
@@ -50,8 +51,10 @@ object UserInputProcessor {
     val partialResults = consoleBooleanAnswer(getStringOrDefault(StdIn.readLine(), defaultPartialResults))
     Console.println(s"${printDoYouWantToLog("total attack results", defaultTotalResults)}")
     val totalResults = consoleBooleanAnswer(getStringOrDefault(StdIn.readLine(), defaultTotalResults))
+    Console.println(s"${printDoYouWantToLog("RAM usage", defaultRamUsageResults)}")
+    val ramUsageResults = consoleBooleanAnswer(getStringOrDefault(StdIn.readLine(), defaultRamUsageResults))
 
-    VerboseOptions(keyPairGeneration, cipherGeneration, partialResults, totalResults)
+    VerboseOptions(keyPairGeneration, cipherGeneration, partialResults, totalResults, ramUsageResults)
   }
 
   def getAttackOptions: (Int, Int) = {

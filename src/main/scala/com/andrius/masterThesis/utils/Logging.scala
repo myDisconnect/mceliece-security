@@ -1,7 +1,6 @@
 package com.andrius.masterThesis.utils
 
 import com.andrius.masterThesis.attacks.Attack
-import org.bouncycastle.pqc.math.linearalgebra
 import org.bouncycastle.pqc.math.linearalgebra.{GF2Matrix, GF2Vector, Permutation, PolynomialGF2mSmallM}
 
 import scala.collection.mutable.ListBuffer
@@ -14,14 +13,14 @@ object Logging {
                                 sMatrix: GF2Matrix,
                                 pPermutation: Permutation,
                               ): Unit = {
-    println(
+    Console.println(
       s"[KEY PAIR GENERATION] Selected irreducible binary Goppa code$goppaPoly\n" +
         s"Private generator matrix G=\n${gMatrix}Matrix S=\n${sMatrix}Permutation P=$pPermutation"
     )
   }
 
   def cipherGenerationResults(m: GF2Vector, mG: GF2Vector, e: GF2Vector): Unit = {
-    println(
+    Console.println(
       s"[CIPHER GENERATION] Message vector m=$m, m*Gpub=$mG, random error vector e=$e, " +
         s"cipher c=${mG.add(e).asInstanceOf[GF2Vector]}"
     )
@@ -34,8 +33,8 @@ object Logging {
                     timeResultsTotal: ListBuffer[Long],
                     extra: String = ""
                   ): Unit =
-    println(s"[ATTACK TOTAL RESULTS] Average ${Attack.map.filter(attack => attackIds.contains(attack._1)).map(_._2).mkString(" + ")} attack " +
-      s"time (from ${keyPairCount * messageCount} samples) " + extra +
+    Console.println(s"[ATTACK TOTAL RESULTS] Average ${Attack.map.filter(attack => attackIds.contains(attack._1)).map(_._2).mkString(" + ")} attack " +
+      s"time (from ${keyPairCount * messageCount} samples)" + extra +
       s": ${Math.average(timeResultsTotal)} ms")
 
   def singleKeyPairResults(
@@ -44,10 +43,18 @@ object Logging {
                             timeResultsKeyPair: ListBuffer[Long],
                             extra: String = ""
                           ): Unit =
-    println(
+    Console.println(
       s"[ATTACK PARTIAL RESULTS] Average ${Attack.map.filter(attack => attackIds.contains(attack._1)).map(_._2).mkString(" + ")} attack " +
-        s"time on single key pair (from $messageCount samples) " + extra +
+        s"time on single key pair (from $messageCount samples)" + extra +
         s": ${Math.average(timeResultsKeyPair)} ms"
     )
+
+  def ramUsageResults(): Unit = {
+    val mb = 1024*1024
+    val runtime = Runtime.getRuntime
+    Console.println(
+      s"[RAM USAGE RESULTS] Current RAM used ${(runtime.totalMemory - runtime.freeMemory) / mb}MB"
+    )
+  }
 
 }

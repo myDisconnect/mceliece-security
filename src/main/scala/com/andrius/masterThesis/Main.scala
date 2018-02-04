@@ -73,6 +73,9 @@ object Main {
         if (configuration.verbose.totalResults) {
           timeResultsTotal += end
         }
+        if (configuration.verbose.ramUsage) {
+          Logging.ramUsageResults()
+        }
       }
       if (configuration.verbose.partialResults) {
         Logging.singleKeyPairResults(attackIds, messageCount, timeResultsKeyPair)
@@ -128,13 +131,16 @@ object Main {
           if (configuration.verbose.totalResults) {
             timeResultsTotal += end
           }
+          if (configuration.verbose.ramUsage) {
+            Logging.ramUsageResults()
+          }
         }
         if (configuration.verbose.partialResults) {
           Logging.singleKeyPairResults(
             attackIds,
             messageCount,
             timeResultsKeyPair,
-            s"with $kRight/${mcEliecePKC.publicKey.getK} known"
+            s" with $kRight/${mcEliecePKC.publicKey.getK} known"
           )
         }
       }
@@ -154,7 +160,7 @@ object Main {
             messageCount,
             keyPairCount,
             results,
-            s"with $kRight/${configuration.k} known")
+            s" with $kRight/${configuration.k} known")
         }
       }
       if (configuration.verbose.totalResults) {
@@ -163,7 +169,7 @@ object Main {
           messageCount,
           keyPairCount,
           timeResultsTotal,
-          s"with 1..${configuration.k - 1}")
+          s" with 1..${configuration.k - 1}")
       }
     } else {
       val results = executeAttack(knownRight)
@@ -244,8 +250,11 @@ object Main {
           attackIds,
           messageCount,
           timeResultsKeyPair,
-          s"with extra iterations needed $extraTriesLocal and accidental identical errors caught $identicalErrorsLocal"
+          s" with extra iterations needed $extraTriesLocal and accidental identical errors caught $identicalErrorsLocal"
         )
+      }
+      if (configuration.verbose.ramUsage) {
+        Logging.ramUsageResults()
       }
     }
     if (configuration.verbose.totalResults) {
@@ -254,7 +263,7 @@ object Main {
         messageCount,
         keyPairCount,
         timeResultsTotal,
-        s"with extra iterations needed $extraTriesTotal"
+        s" with extra iterations needed $extraTriesTotal"
       )
     }
   }
@@ -326,8 +335,11 @@ object Main {
           attackIds,
           messageCount,
           timeResultsKeyPair,
-          s"with extra iterations needed $extraTriesLocal and accidental identical errors caught $identicalErrorsLocal"
+          s" with extra iterations needed $extraTriesLocal and accidental identical errors caught $identicalErrorsLocal"
         )
+      }
+      if (configuration.verbose.ramUsage) {
+        Logging.ramUsageResults()
       }
     }
     if (configuration.verbose.totalResults) {
@@ -336,7 +348,7 @@ object Main {
         messageCount,
         keyPairCount,
         timeResultsTotal,
-        s"with extra iterations needed $extraTriesTotal"
+        s" with extra iterations needed $extraTriesTotal"
       )
     }
   }
@@ -377,6 +389,9 @@ object Main {
           messageCount,
           timeResultsKeyPair
         )
+      }
+      if (configuration.verbose.ramUsage) {
+        Logging.ramUsageResults()
       }
     }
     if (configuration.verbose.totalResults) {
