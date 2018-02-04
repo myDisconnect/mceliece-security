@@ -58,7 +58,7 @@ object UserInputProcessor {
   }
 
   def getAttackOptions: (Int, Int) = {
-    val defaultKeyPairCount = 10
+    val defaultKeyPairCount = 1
     val defaultMessageCount = 1000
     Console.println(s"Enter the number of randomly generated McEliece keys to attack ${printDefault(defaultKeyPairCount)}")
     val keyPairCount = getIntOrDefault(StdIn.readLine(), defaultKeyPairCount)

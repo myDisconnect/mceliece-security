@@ -181,7 +181,7 @@ object McElieceCryptosystem {
   case class VerboseOptions(
                              keyPairGeneration: Boolean = false,
                              cipherGeneration: Boolean = false,
-                             partialResults: Boolean = true,
+                             partialResults: Boolean = false,
                              totalResults: Boolean = true,
                              ramUsage: Boolean = false
                            )

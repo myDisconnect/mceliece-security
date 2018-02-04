@@ -26,17 +26,6 @@ object Logging {
     )
   }
 
-  def totalResults(
-                    attackIds: List[Int],
-                    messageCount: Int,
-                    keyPairCount: Int,
-                    timeResultsTotal: ListBuffer[Long],
-                    extra: String = ""
-                  ): Unit =
-    Console.println(s"[ATTACK TOTAL RESULTS] Average ${Attack.map.filter(attack => attackIds.contains(attack._1)).map(_._2).mkString(" + ")} attack " +
-      s"time (from ${keyPairCount * messageCount} samples)" + extra +
-      s": ${Math.average(timeResultsTotal)} ms")
-
   def singleKeyPairResults(
                             attackIds: List[Int],
                             messageCount: Int,
@@ -46,8 +35,19 @@ object Logging {
     Console.println(
       s"[ATTACK PARTIAL RESULTS] Average ${Attack.map.filter(attack => attackIds.contains(attack._1)).map(_._2).mkString(" + ")} attack " +
         s"time on single key pair (from $messageCount samples)" + extra +
-        s": ${Math.average(timeResultsKeyPair)} ms"
+        s": ${Math.average(timeResultsKeyPair)} ms. Min: ${timeResultsKeyPair.min}. Max: ${timeResultsKeyPair.max}."
     )
+
+  def totalResults(
+                    attackIds: List[Int],
+                    messageCount: Int,
+                    keyPairCount: Int,
+                    timeResultsTotal: ListBuffer[Long],
+                    extra: String = ""
+                  ): Unit =
+    Console.println(s"[ATTACK TOTAL RESULTS] Average ${Attack.map.filter(attack => attackIds.contains(attack._1)).map(_._2).mkString(" + ")} attack " +
+      s"time (from ${keyPairCount * messageCount} samples)" + extra +
+      s": ${Math.average(timeResultsTotal)} ms. Min: ${timeResultsTotal.min}. Max: ${timeResultsTotal.max}.")
 
   def ramUsageResults(): Unit = {
     val mb = 1024*1024

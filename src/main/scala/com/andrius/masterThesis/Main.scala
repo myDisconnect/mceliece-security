@@ -6,7 +6,7 @@ import com.andrius.masterThesis.attacks.critical.{KnownPartialPlaintext, Message
 import com.andrius.masterThesis.attacks.structural.SupportSplittingAlgorithm
 import com.andrius.masterThesis.mceliece.McElieceCryptosystem
 import com.andrius.masterThesis.mceliece.McElieceCryptosystem.Configuration
-import com.andrius.masterThesis.utils.{Logging, Math, UserInputProcessor, Vector}
+import com.andrius.masterThesis.utils.{Logging, UserInputProcessor, Vector}
 import org.bouncycastle.pqc.math.linearalgebra.GF2Vector
 
 import scala.collection.mutable.ListBuffer
@@ -18,10 +18,13 @@ object Main {
 
   def main(args: Array[String]): Unit = {
     val configuration = UserInputProcessor.getMcElieceConfiguration
-    Console.println(s"Attack(s) will be executed on McEliece cryptosystems with (n, k, t) = (${configuration.n}, " +
-      s"${configuration.k}, ${configuration.t}) security parameters.")
     val (keyPairCount, messageCount) = UserInputProcessor.getAttackOptions
     val attackId = UserInputProcessor.getAttackId
+
+    Console.println(
+      s"Attack(s) will be executed on McEliece cryptosystem with (n, k, t) = (${configuration.n}, " +
+        s"${configuration.k}, ${configuration.t}) security parameters (m = ${configuration.m})."
+    )
 
     attackId match {
       case Attack.Id.GISD =>
