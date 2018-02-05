@@ -11,7 +11,7 @@ object Logging {
                                 goppaPoly: PolynomialGF2mSmallM,
                                 gMatrix: GF2Matrix,
                                 sMatrix: GF2Matrix,
-                                pPermutation: Permutation,
+                                pPermutation: Permutation
                               ): Unit = {
     Console.println(
       s"[KEY PAIR GENERATION] Selected irreducible binary Goppa code$goppaPoly\n" +
@@ -53,7 +53,8 @@ object Logging {
     val mb = 1024*1024
     val runtime = Runtime.getRuntime
     Console.println(
-      s"[RAM USAGE RESULTS] Current RAM used ${(runtime.totalMemory - runtime.freeMemory) / mb}MB"
+      s"[RAM USAGE RESULTS] Current RAM used ${(runtime.totalMemory - runtime.freeMemory) / mb}MB/" +
+        s"${runtime.totalMemory / mb}MB"
     )
   }
 
