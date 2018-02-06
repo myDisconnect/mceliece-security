@@ -6,7 +6,7 @@ import org.bouncycastle.pqc.math.linearalgebra.{GF2Vector, IntUtils}
 import scala.util.Random
 
 /**
-  * Vector Utils
+  * Vector utilities
   */
 object Vector {
 
@@ -70,7 +70,7 @@ object Vector {
     *
     * @param left  GF2Vector
     * @param right GF2Vector
-    * @return merged GF2Vector
+    * @return
     */
   def concat(left: GF2Vector, right: GF2Vector): GF2Vector = {
     val out = IntUtils.clone(left.getVecArray)
@@ -85,9 +85,9 @@ object Vector {
     *
     * @param in      input vector
     * @param columns columns to extract from input vector
-    * @return new GF2Vector from column list
+    * @return
     */
-  def vectorFromColumns(in: GF2Vector, columns: List[Int]): GF2Vector = {
+  def createGF2VectorFromColumns(in: GF2Vector, columns: List[Int]): GF2Vector = {
     val out = Array.fill((columns.length - 1) / 32 + 1)(0)
     val vector = in.getVecArray
     for ((indexToTake, indexToSet) <- columns.zipWithIndex) {
@@ -127,7 +127,7 @@ object Vector {
   }
 
   /**
-    * Convert sequence of 0 and 1 to GF2Vector
+    * Create GF2Vector from sequence of [0,1]
     *
     * @param sequence elements containing 0 or 1
     * @return

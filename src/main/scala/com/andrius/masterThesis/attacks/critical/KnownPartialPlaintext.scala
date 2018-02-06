@@ -29,8 +29,8 @@ class KnownPartialPlaintext(publicKey: BCMcEliecePublicKey) {
     val kRight = knownRight.getLength
     val kLeft = k - kRight
 
-    val gRight = Matrix.matrixFromRows(g, Range(kLeft, k).toList)
-    val gLeft = Matrix.matrixFromRows(g, Range(0, kLeft).toList)
+    val gRight = Matrix.createGF2MatrixFromRows(g, Range(kLeft, k).toList)
+    val gLeft = Matrix.createGF2MatrixFromRows(g, Range(0, kLeft).toList)
 
     val cNew = c.add(gRight.leftMultiply(knownRight)).asInstanceOf[GF2Vector]
     val pubKeyNew = new BCMcEliecePublicKey(new McEliecePublicKeyParameters(n, t, gLeft))

@@ -1,8 +1,8 @@
 package com.andrius.masterThesis.attacks.noncritical.informationSetDecoding
 
-import com.andrius.masterThesis.utils.{Math, Vector}
-import com.andrius.masterThesis.utils.Matrix._
-import com.andrius.masterThesis.utils.Vector._
+import com.andrius.masterThesis.utils.Math
+import com.andrius.masterThesis.utils.Matrix
+import com.andrius.masterThesis.utils.Vector
 import org.bouncycastle.pqc.jcajce.provider.mceliece.BCMcEliecePublicKey
 import org.bouncycastle.pqc.math.linearalgebra.{GF2Matrix, GF2Vector}
 
@@ -38,27 +38,30 @@ class LeeBrickell(publicKey: BCMcEliecePublicKey) {
     var found = false
     val columns = (0 until n).toList
     val failedDictionary = new mutable.HashSet[Set[Int]]()
+    // p - the search size parameter (0 <= p <= t),
+    // must be small to keep the number of size-p subsets, p = 2 is optimal (@see 2)
+    val p = 2
     while (!found) {
-      // Step 1 We randomise information-set columns
+      // Step 1. We randomise a possible "information-set" columns
       val i = Math.sample(columns, k)
       // Order is not important, because columns are linearly independent
       val iSet = i.toSet
       if (!failedDictionary.contains(iSet)) {
         failedDictionary += iSet
-        val gi = matrixFromColumns(g, i)
+        val gi = Matrix.createGF2MatrixFromColumns(g, i)
         try {
           val giInv = gi.computeInverse
           val gt = giInv.rightMultiply(g).asInstanceOf[GF2Matrix]
-          // Step 2
-          val ci = vectorFromColumns(c, i)
+          // Step 2. Create ci (from c columns)
+          val ci = Vector.createGF2VectorFromColumns(c, i)
           val y = c.add(gt.leftMultiply(ci)).asInstanceOf[GF2Vector]
-          // Step 3 iterate over all possible gt (new generator matrix) codewords
+          // Step 3. Trying to find error vector of t Hamming weigh
           for {
-            pi <- Range.inclusive(0, t).toList
-            a <- Range(0, k).toList.combinations(pi)
+            pi <- Range.inclusive(0, p)
+            a <- Range(0, k).combinations(pi)
           } yield {
             var sum = new GF2Vector(n)
-            for (i <- Range(0, pi).toList) {
+            for (i <- Range(0, pi)) {
               val row = new GF2Vector(gt.getNumColumns, gt.getRow(a(i)))
               sum = sum.add(row).asInstanceOf[GF2Vector]
             }
@@ -66,7 +69,7 @@ class LeeBrickell(publicKey: BCMcEliecePublicKey) {
             val e = y.add(sum).asInstanceOf[GF2Vector]
             if (e.getHammingWeight == t) {
               found = true
-              val ei = vectorFromColumns(e, i)
+              val ei = Vector.createGF2VectorFromColumns(e, i)
               decipheredMsg = giInv.leftMultiply(ci.add(ei).asInstanceOf[GF2Vector]).asInstanceOf[GF2Vector]
               // to get a nearest codeword of t Hamming distance from c
               // c.add(e).asInstanceOf[GF2Vector]

@@ -2,14 +2,17 @@ package com.andrius.masterThesis.utils
 
 import scala.annotation.tailrec
 
+/**
+  * Combinatorics utilities
+  */
 object Combinatorics {
 
   /**
     * Possible k-combination of a set S with n elements
     * n! / (k! * (n - k)!)
     *
-    * @param n elements in
-    * @param k
+    * @param n elements
+    * @param k combinations
     * @return
     */
   def countPossibleCombinations(n: BigInt, k: BigInt): BigInt =

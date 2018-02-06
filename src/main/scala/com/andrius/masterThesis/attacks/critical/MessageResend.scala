@@ -66,7 +66,7 @@ class MessageResend(publicKey: BCMcEliecePublicKey) {
             .computeInverse()
             .asInstanceOf[GF2Matrix]
           found = true
-          val c1Prime = Vector.vectorFromColumns(c1, rowsSelected.toList)
+          val c1Prime = Vector.createGF2VectorFromColumns(c1, rowsSelected.toList)
           out = restrictedPub.leftMultiply(c1Prime).asInstanceOf[GF2Vector]
         } catch {
           case _: ArithmeticException =>

@@ -3,6 +3,9 @@ package com.andrius.masterThesis.utils
 import scala.annotation.tailrec
 import scala.util.Random
 
+/**
+  * Math utilities
+  */
 object Math {
 
   /**

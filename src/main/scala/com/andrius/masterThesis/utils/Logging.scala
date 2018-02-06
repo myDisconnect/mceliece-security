@@ -5,6 +5,9 @@ import org.bouncycastle.pqc.math.linearalgebra.{GF2Matrix, GF2Vector, Permutatio
 
 import scala.collection.mutable.ListBuffer
 
+/**
+  * Logging utilities
+  */
 object Logging {
 
   def keyPairGenerationResults(

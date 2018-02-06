@@ -6,7 +6,7 @@ import scala.collection.mutable.ListBuffer
 import scala.util.control.Breaks.{break, breakable}
 
 /**
-  * Matrix Utils
+  * Matrix utilities
   */
 object Matrix {
 
@@ -216,7 +216,7 @@ object Matrix {
     * @param columns columns to extract from input matrix
     * @return
     */
-  def matrixFromColumns(in: GF2Matrix, columns: List[Int]): GF2Matrix = {
+  def createGF2MatrixFromColumns(in: GF2Matrix, columns: List[Int]): GF2Matrix = {
     val out = Array.ofDim[Int](in.getNumRows, (columns.length - 1) / 32 + 1)
     val matrix = in.getIntArray
 
@@ -234,7 +234,7 @@ object Matrix {
     * @param rows rows to extract from input matrix
     * @return
     */
-  def matrixFromRows(in: GF2Matrix, rows: List[Int]): GF2Matrix = {
+  def createGF2MatrixFromRows(in: GF2Matrix, rows: List[Int]): GF2Matrix = {
     val out = Array.ofDim[Int](rows.length, in.getLength)
 
     for ((rowToTake, rowToSet) <- rows.zipWithIndex) {
@@ -245,7 +245,7 @@ object Matrix {
   }
 
   /**
-    * Convert two dimensional sequence of 0 and 1 to GF2Matrix
+    * Create GF2Matrix from two dimensional sequence of [0,1]
     *
     * @param sequence two dimensional sequence containing 0 or 1
     * @return
