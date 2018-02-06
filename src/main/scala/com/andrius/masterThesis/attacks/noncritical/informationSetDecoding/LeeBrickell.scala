@@ -1,6 +1,6 @@
 package com.andrius.masterThesis.attacks.noncritical.informationSetDecoding
 
-import com.andrius.masterThesis.utils.Math
+import com.andrius.masterThesis.utils.{Math, Vector}
 import com.andrius.masterThesis.utils.Matrix._
 import com.andrius.masterThesis.utils.Vector._
 import org.bouncycastle.pqc.jcajce.provider.mceliece.BCMcEliecePublicKey
@@ -34,15 +34,17 @@ class LeeBrickell(publicKey: BCMcEliecePublicKey) {
     * @return message
     */
   def attack(c: GF2Vector): GF2Vector = {
-    var out = new GF2Vector(g.getNumRows, Array.fill((g.getNumRows - 1) / 32 + 1)(0))
+    var decipheredMsg = new GF2Vector(k)
     var found = false
-    // Dictionary should be optimised
-    var dictionary = new mutable.HashSet[List[Int]]()
+    val columns = (0 until n).toList
+    val failedDictionary = new mutable.HashSet[Set[Int]]()
     while (!found) {
       // Step 1 We randomise information-set columns
-      val i = Math.sample((0 until n).toList, k)
-      if (!dictionary.contains(i)) {
-        dictionary += i
+      val i = Math.sample(columns, k)
+      // Order is not important, because columns are linearly independent
+      val iSet = i.toSet
+      if (!failedDictionary.contains(iSet)) {
+        failedDictionary += iSet
         val gi = matrixFromColumns(g, i)
         try {
           val giInv = gi.computeInverse
@@ -55,7 +57,7 @@ class LeeBrickell(publicKey: BCMcEliecePublicKey) {
             pi <- Range.inclusive(0, t).toList
             a <- Range(0, k).toList.combinations(pi)
           } yield {
-            var sum = new GF2Vector(gt.getNumColumns, Array.fill((gt.getNumColumns - 1) / 32 + 1)(0))
+            var sum = new GF2Vector(n)
             for (i <- Range(0, pi).toList) {
               val row = new GF2Vector(gt.getNumColumns, gt.getRow(a(i)))
               sum = sum.add(row).asInstanceOf[GF2Vector]
@@ -65,8 +67,8 @@ class LeeBrickell(publicKey: BCMcEliecePublicKey) {
             if (e.getHammingWeight == t) {
               found = true
               val ei = vectorFromColumns(e, i)
-              out = giInv.leftMultiply(ci.add(ei).asInstanceOf[GF2Vector]).asInstanceOf[GF2Vector]
-              // to get a nearest codeword of t Hamming distance from c (aka Error vector)
+              decipheredMsg = giInv.leftMultiply(ci.add(ei).asInstanceOf[GF2Vector]).asInstanceOf[GF2Vector]
+              // to get a nearest codeword of t Hamming distance from c
               // c.add(e).asInstanceOf[GF2Vector]
             }
           }
@@ -76,7 +78,7 @@ class LeeBrickell(publicKey: BCMcEliecePublicKey) {
         }
       }
     }
-    out
+    decipheredMsg
   }
 
 }
