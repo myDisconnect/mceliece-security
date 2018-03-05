@@ -14,12 +14,15 @@ import org.bouncycastle.pqc.math.linearalgebra.{GF2Matrix, GF2Vector}
   * @param publicKey McEliece public key
   */
 class KnownPartialPlaintext(publicKey: BCMcEliecePublicKey) {
+
   val g: GF2Matrix = publicKey.getG
   val n: Int = g.getNumColumns
   val k: Int = g.getNumRows
   val t: Int = publicKey.getT
 
   /**
+    * This attack only reduces the security complexity of the encrypted message.
+    * Main relation: y = mG + e = m_left*G_left + m_right*G_right + e
     *
     * @param knownRight known message vector from right
     * @param c          cipher

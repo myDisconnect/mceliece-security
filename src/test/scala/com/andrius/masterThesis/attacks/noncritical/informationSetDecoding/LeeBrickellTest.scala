@@ -7,7 +7,7 @@ import org.scalatest.FlatSpec
 
 class LeeBrickellTest extends FlatSpec {
 
-  behavior of "LeeBrickellTest"
+  behavior of "LeeBrickellAttack"
 
   it should "attack and never fail" in {
     val configuration = Configuration(m = 5, t = 2)

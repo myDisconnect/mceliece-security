@@ -12,7 +12,7 @@ import scala.collection.mutable.ListBuffer
 
 class SupportSplittingAlgorithmTest extends FlatSpec {
 
-  behavior of "SupportSplittingAlgorithmTest"
+  behavior of "SupportSplittingAlgorithmAttack"
 
   it should "generateAllCodewords" in {
     val g = Matrix.createGF2Matrix(Seq(

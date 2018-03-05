@@ -6,7 +6,7 @@ import org.scalatest.FlatSpec
 
 class McElieceCryptosystemTest extends FlatSpec {
 
-  behavior of "McElieceCryptosystemTest"
+  behavior of "McElieceCryptosystem"
   val configuration = Configuration(m = 5, t = 2)
   val mcEliecePKC = new McElieceCryptosystem(configuration)
 

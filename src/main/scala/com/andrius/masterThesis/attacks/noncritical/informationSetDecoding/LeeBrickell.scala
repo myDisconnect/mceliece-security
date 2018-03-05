@@ -31,23 +31,22 @@ class LeeBrickell(publicKey: BCMcEliecePublicKey) {
     * When we can find the original message from received error vector
     *
     * @param c cipher
+    * @param p the search size parameter (0 <= p <= t), must be small to keep the number of size-p subsets,
+    *          p = 2 is optimal for the binary case (@see 2)
     * @return message
     */
-  def attack(c: GF2Vector): GF2Vector = {
+  def attack(c: GF2Vector, p: Int = 2): GF2Vector = {
     var decipheredMsg = new GF2Vector(k)
     var found = false
     val columns = (0 until n).toList
-    val failedDictionary = new mutable.HashSet[Set[Int]]()
-    // p - the search size parameter (0 <= p <= t),
-    // must be small to keep the number of size-p subsets, p = 2 is optimal (@see 2)
-    val p = 2
+    val failedTriesDictionary = new mutable.HashSet[Set[Int]]()
     while (!found) {
       // Step 1. We randomise a possible "information-set" columns
       val i = Math.sample(columns, k)
       // Order is not important, because columns are linearly independent
       val iSet = i.toSet
-      if (!failedDictionary.contains(iSet)) {
-        failedDictionary += iSet
+      if (!failedTriesDictionary.contains(iSet)) {
+        failedTriesDictionary += iSet
         val gi = Matrix.createGF2MatrixFromColumns(g, i)
         try {
           val giInv = gi.computeInverse

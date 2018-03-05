@@ -8,14 +8,14 @@ import scala.annotation.tailrec
 object Combinatorics {
 
   /**
-    * Possible k-combination of a set S with n elements
+    * Possible k-combination of a set with n elements
     * n! / (k! * (n - k)!)
     *
     * @param n elements
     * @param k combinations
     * @return
     */
-  def countPossibleCombinations(n: BigInt, k: BigInt): BigInt =
+  def combinations(n: BigInt, k: BigInt): BigInt =
     factorial(n) / (factorial(k) * factorial(n - k))
 
   /**
