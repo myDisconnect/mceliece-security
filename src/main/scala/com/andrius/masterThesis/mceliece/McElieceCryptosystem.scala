@@ -10,8 +10,15 @@ import org.bouncycastle.pqc.jcajce.provider.mceliece.{BCMcEliecePrivateKey, BCMc
 import org.bouncycastle.pqc.math.linearalgebra.{GF2Matrix, GF2Vector, GF2mField, GoppaCode, Permutation, PolynomialGF2mSmallM, PolynomialRingGF2}
 
 /**
-  * Original McEliece cryptosystem (A wrapper for bouncycastle McEliece implementation with small modifications
+  * McEliece cryptosystem (A wrapper for bouncycastle McEliece implementation with small modifications
   * and more flexible methods)
+  *
+  * Notes on bouncycastle implementation used:
+  * 1. It is constructing parity-check matrix from Goppa code.
+  * 2. It uses incorrect systematic form for generator matrix, should be [I_n | x] not [x | I_n] (@see val gPrime).
+  * 3. It generates two permutations and then multiplies them in private key for no reason.
+  * 4. It doesn't set the parity-check/generator matrix to private key, each time we receive a message we generate
+  * matrices from saved Goppa poly.
   *
   * @see R.J. McEliece. A public-key cryptosystem based on algebraic. (https://tmo.jpl.nasa.gov/progress_report2/42-44/44N.PDF)
   * @see Great introductory slides about McEliece: http://www-math.ucdenver.edu/~wcherowi/courses/m5410/mcleice.pdf
@@ -55,11 +62,11 @@ class McElieceCryptosystem(config: Configuration) {
     // compute short systematic form of generator matrix
     val shortG = shortH.computeTranspose.asInstanceOf[GF2Matrix]
 
-    // extend to full systematic form
-    val gPrime = shortG.extendLeftCompactForm
-
     // obtain number of rows of G (= dimension of the code)
     val k = shortG.getNumRows
+
+    // extend to full systematic form
+    val gPrime = shortG.extendLeftCompactForm
 
     // generate random invertible (k x k)-matrix S and its inverse S^-1
     val matrixSandInverse = GF2Matrix.createRandomRegularMatrixAndItsInverse(k, sr)
@@ -67,8 +74,8 @@ class McElieceCryptosystem(config: Configuration) {
     // generate random permutation P2
     val p2 = new Permutation(n, sr)
 
-    // compute public matrix G=S*G'*P2
-    val g = matrixSandInverse(0).rightMultiply(gPrime).asInstanceOf[GF2Matrix].rightMultiply(p2).asInstanceOf[GF2Matrix]
+    // compute public matrix G=S * G' * P2
+    val g = matrixSandInverse(0).rightMultiply(gPrime).rightMultiply(p2).asInstanceOf[GF2Matrix]
     if (config.verbose.keyPairGeneration) {
       Logging.keyPairGenerationResults(gp, gPrime, matrixSandInverse(0), p1.rightMultiply(p2))
     }
@@ -95,7 +102,7 @@ class McElieceCryptosystem(config: Configuration) {
     if (config.verbose.cipherGeneration) {
       Logging.cipherGenerationResults(m, mG.asInstanceOf[GF2Vector], e)
     }
-    // compute mG+e
+    // compute mG + e
     mG.add(e).asInstanceOf[GF2Vector]
   }
 
@@ -179,11 +186,11 @@ object McElieceCryptosystem {
   case class McElieceKeyPair(publicKey: BCMcEliecePublicKey, privateKey: BCMcEliecePrivateKey)
 
   case class VerboseOptions(
-                             keyPairGeneration: Boolean = false,
-                             cipherGeneration: Boolean = false,
-                             partialResults: Boolean = true,
-                             totalResults: Boolean = true,
-                             ramUsage: Boolean = false
-                           )
+      keyPairGeneration: Boolean = false,
+      cipherGeneration: Boolean = false,
+      partialResults: Boolean = true,
+      totalResults: Boolean = true,
+      ramUsage: Boolean = false
+  )
 
 }
