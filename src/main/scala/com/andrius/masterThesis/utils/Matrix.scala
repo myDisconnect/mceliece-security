@@ -52,29 +52,6 @@ object Matrix {
   }
 
   /**
-    * Generate all possible codewords from generator matrix (very slow)
-    *
-    * @param g generator matrix
-    * @return list of all codewords
-    */
-  def generateAllCodewords(g: GF2Matrix): List[GF2Vector] = {
-    val n = g.getNumColumns
-    val k = g.getNumRows
-    val codewords = new ListBuffer[GF2Vector]()
-    for (messageWords <- Math.permutationsWithRepetitions(Range.inclusive(0, 1).toList, k)) {
-      var result = new GF2Vector(n)
-      for (i <- Range(0, k)) {
-        if (messageWords(i) == 1) {
-          result =
-            result.add(new GF2Vector(n, g.getRow(i))).asInstanceOf[GF2Vector]
-        }
-      }
-      codewords += result
-    }
-    codewords.toList
-  }
-
-  /**
     * Get matrix column (uses GF2Matrix.getIntArray)
     *
     * @param in  input matrix int array
@@ -103,7 +80,7 @@ object Matrix {
     val length = pos / 32
     for (i <- in.indices) {
       val a = in(i)(length)
-      val el = (a >>> elem) & 1
+      val el = a >>> elem & 1
       if (el != values(i)) {
         in(i)(length) = a ^ (1 << elem)
       }
@@ -128,12 +105,12 @@ object Matrix {
   }
 
   /**
-    * Add row1 to row2
+    * Add row2 to row1
     *
     * @param row1 Row to add to
     * @param row2 Row added
     */
-  def selfAdd(row1: Array[Int], row2: Array[Int]): Unit = {
+  def selfAddRow(row1: Array[Int], row2: Array[Int]): Unit = {
     for (i <- row1.indices) {
       row1(i) ^= row2(i)
     }
@@ -155,7 +132,7 @@ object Matrix {
   /**
     * Swap columns of a given matrix two dimensional array
     *
-    * @todo more efficient swap
+    * @todo more efficient swap (double for loop)
     * @param in      input matrix int array
     * @param posFrom column position to swap from
     * @param posTo   column position to swap to
@@ -165,6 +142,120 @@ object Matrix {
     val column2: Array[Int] = getColumn(in, posTo)
     setColumn(in, column1, posTo)
     setColumn(in, column2, posFrom)
+  }
+
+  /**
+    * Get given matrix array position value
+    *
+    * @param in     matrix int array
+    * @param row    row number
+    * @param column column number
+    * @return true if value is equal to 1 else false
+    */
+  def getMatrixArrayValueInt(in: Array[Array[Int]], row: Int, column: Int): Int = {
+    in(row)(column / 32) >>> (column % 32) & 1
+  }
+
+  /**
+    * Check if in given matrix positions value is equal to 1
+    *
+    * @param in     matrix int array
+    * @param row    row number
+    * @param column column number
+    * @return true if value is equal to 1 else false
+    */
+  def getMatrixArrayValueBoolean(in: Array[Array[Int]], row: Int, column: Int): Boolean = {
+    getMatrixArrayValueInt(in, row, column) == 1
+  }
+
+  /**
+    * Set given matrix positions value
+    *
+    * @param out    matrix array to set value to
+    * @param row    position
+    * @param column position
+    * @param value  1 or 0
+    */
+  def setMatrixArrayValue(out: Array[Array[Int]], row: Int, column: Int, value: Int): Unit = {
+    if ((out(row)(column / 32) >>> (column % 32) & 1) != value) {
+      out(row)(column / 32) ^= (1 << (column % 32))
+    }
+  }
+
+  /**
+    * Concatenate two matrices vertically
+    *
+    * @param m1 upper matrix
+    * @param m2 lower matrix
+    * @return new concatenated matrix
+    */
+  def joinVertically(m1: GF2Matrix, m2: GF2Matrix): GF2Matrix = {
+    require(m1.getNumColumns == m2.getNumColumns, "both matrices should have the same column size")
+
+    val out = Array.ofDim[Int](m1.getNumRows + m2.getNumRows, (m1.getNumColumns - 1) / 32 + 1)
+    System.arraycopy(ArrayUtils.cloneArray(m1.getIntArray), 0, out, 0, m1.getIntArray.length)
+    System.arraycopy(ArrayUtils.cloneArray(m2.getIntArray), 0, out, m1.getIntArray.length, m2.getIntArray.length)
+
+    new GF2Matrix(m1.getNumColumns, out)
+  }
+
+  /** Generate identity matrix
+    *
+    * @param m Number of rows.
+    * @param n Number of columns.
+    * @return An m-by-n matrix with ones on the diagonal and zeros elsewhere
+    */
+  def identity(m: Int, n: Int): GF2Matrix = {
+    val out = Array.ofDim[Int](m, (n - 1) / 32 + 1)
+    for {
+      i <- 0 until m
+      j <- 0 until n
+      if i == j
+    } out(i)(j / 32) ^= (1 << (j % 32))
+    new GF2Matrix(m, out)
+  }
+
+  /**
+    * Create new submatrix from given matrix positions
+    *
+    * @param in       matrix to take values from
+    * @param firstRow row position to start
+    * @param firstCol column position to start
+    * @param lastRow  row position to end (included)
+    * @param lastCol  column position to end (included)
+    * @return new submatrix
+    */
+  def getSubMatrix(in: GF2Matrix, firstRow: Int, firstCol: Int, lastRow: Int, lastCol: Int): GF2Matrix = {
+    val rows = lastRow - firstRow + 1
+    val columns = lastCol - firstCol + 1
+
+    require(
+      in.getNumColumns >= columns && Seq(firstCol, lastCol).forall(col => col >= 0 && col < in.getNumColumns),
+      s"Incorrect column positions given: Start: $firstCol, End: $lastCol"
+    )
+    require(
+      in.getNumRows >= rows && Seq(firstRow, lastRow).forall(row => row >= 0 && row < in.getNumRows),
+      s"Incorrect row positions given: Start: $firstRow, End: $lastRow"
+    )
+
+    val out = Array.ofDim[Int](rows, (columns - 1) / 32 + 1)
+    val inArray = in.getIntArray
+    var row = 0
+    for (i <- firstRow to lastRow) {
+      var col = 0
+      for (j <- firstCol to lastCol) {
+        setMatrixArrayValue(
+          out,
+          row,
+          col,
+          getMatrixArrayValueInt(inArray, i, j)
+        )
+        col += 1
+      }
+      row += 1
+    }
+
+    new GF2Matrix(columns, out)
   }
 
 }

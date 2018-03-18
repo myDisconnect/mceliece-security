@@ -1,24 +1,23 @@
 package com.andrius.masterThesis.attacks.critical
 
+import com.andrius.masterThesis.mceliece.McElieceCryptosystem.McEliecePublicKey
 import com.andrius.masterThesis.utils.{Math, Matrix, Vector}
-import org.bouncycastle.pqc.jcajce.provider.mceliece.BCMcEliecePublicKey
 import org.bouncycastle.pqc.math.linearalgebra.{GF2Matrix, GF2Vector}
 
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
-import scala.util.Random
 
 /**
   * @see Thomas A. Berson. Failure of the McEliece Public-Key Cryptosystem Under Message-Resend and Related-Message Attack
   *      (https://link.springer.com/content/pdf/10.1007%2FBFb0052237.pdf)
   * @param publicKey McEliece public key
   */
-class RelatedMessage(publicKey: BCMcEliecePublicKey) {
+class RelatedMessage(publicKey: McEliecePublicKey) {
 
-  val g: GF2Matrix = publicKey.getG
-  val n: Int = publicKey.getG.getNumColumns
-  val k: Int = publicKey.getG.getNumRows
-  val t: Int = publicKey.getT
+  val g: GF2Matrix = publicKey.gPublic
+  val n: Int = g.getNumColumns
+  val k: Int = g.getNumRows
+  val t: Int = publicKey.t
 
   /**
     * This attack is almost exactly like Message-Resend attack, except messages m1 and m2 are not equal
@@ -36,7 +35,7 @@ class RelatedMessage(publicKey: BCMcEliecePublicKey) {
   def attack(c1: GF2Vector, c2: GF2Vector, mDelta: GF2Vector): GF2Vector = {
     var decipheredMsg = new GF2Vector(k)
     var found = false
-    val failedTriesDictionary = new mutable.HashSet[Set[Int]]()
+    val failedTriesDictionary = mutable.HashSet.empty[Set[Int]]
     val c1c2delta = g.leftMultiply(mDelta).add(c1.add(c2)).asInstanceOf[GF2Vector]
     val collisionFreePositions = new ListBuffer[Int]()
     for (j <- 0 until c1c2delta.getLength) {

@@ -2,9 +2,10 @@ package com.andrius.masterThesis.attacks.structural
 
 import java.security.SecureRandom
 
-import com.andrius.masterThesis.utils.{GeneratorMatrix, Matrix, Vector}
-import org.bouncycastle.pqc.jcajce.provider.mceliece.BCMcEliecePublicKey
-import org.bouncycastle.pqc.math.linearalgebra.{GF2Matrix, GF2Vector, GF2mField, IntUtils, PolynomialGF2mSmallM, PolynomialRingGF2}
+import com.andrius.masterThesis.attacks.structural.SupportSplittingAlgorithm.SSAVerboseOptions
+import com.andrius.masterThesis.mceliece.McElieceCryptosystem.McEliecePublicKey
+import com.andrius.masterThesis.utils.{GeneratorParityCheckMatrix, Logging, Matrix, Vector}
+import org.bouncycastle.pqc.math.linearalgebra.{GF2Matrix, GF2Vector, GF2mField, IntUtils, Permutation, PolynomialGF2mSmallM, PolynomialRingGF2}
 
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
@@ -15,95 +16,90 @@ import scala.collection.mutable.ListBuffer
   * @see Great slides (https://who.rocq.inria.fr/Dimitrios.Simos/talks/CBCSlides2012.pdf)
   * @see Inria Cryptography course on McEliece cryptosystem: (https://www.canal-u.tv/video/inria/4_2_support_splitting_algorithm.32925)
   */
-class SupportSplittingAlgorithm(publicKey: BCMcEliecePublicKey) {
+class SupportSplittingAlgorithm(publicKey: McEliecePublicKey, verbose: SSAVerboseOptions = SSAVerboseOptions()) {
   import SupportSplittingAlgorithm._
 
-  var publicKeySignature: mutable.Map[Int, String] = getSignature(Matrix.generateAllCodewords(publicKey.getG))
-  var k: Int = publicKey.getK
-  var t: Int = publicKey.getT
-  var n: Int = publicKey.getN
-  var m: Int = (n - k) / t
+  val g: GF2Matrix = publicKey.gPublic
+  val p: Permutation = publicKey.pLocal.computeInverse
+  val n: Int = g.getNumColumns
+  val k: Int = g.getNumRows
+  val t: Int = publicKey.t
+  val m: Int = (n - k) / t
+
+  var publicKeySignature: Map[Seq[Int], String] = getSignature(GeneratorParityCheckMatrix.generateAllCodewords(g))
 
   /**
     * @return private key matrix g
     */
   def attack: GF2Matrix = {
     val sr = new SecureRandom
-    val failedGPTriesDictionary = new mutable.HashSet[PolynomialGF2mSmallM]()
+    val failedGPTriesDictionary = mutable.HashSet.empty[PolynomialGF2mSmallM]
     var generatorMatrix: Option[GF2Matrix] = None
+    var permutationMap = Map.empty[Int, Int]
 
     val fieldPoly = PolynomialRingGF2.getIrreduciblePolynomial(m)
     val field = new GF2mField(m, fieldPoly)
 
-    var iterations = 0
+    var iteration = 0
     while (generatorMatrix.isEmpty) {
       // It is possible to find permutation between two different Goppa polynomials
+      // Also it is possible that two different irreductible goppa codes have the same generator matrix
       val goppaPoly = new PolynomialGF2mSmallM(field, t, PolynomialGF2mSmallM.RANDOM_IRREDUCIBLE_POLYNOMIAL, sr)
       if (!failedGPTriesDictionary.contains(goppaPoly)) {
         failedGPTriesDictionary += goppaPoly
-        iterations +=1
+        iteration +=1
+        val gMatrix = GeneratorParityCheckMatrix.getGeneratorMatrix(field, goppaPoly, p, sr)
         try {
-          generatorMatrix = Some(GeneratorMatrix.getGeneratorMatrix(field, goppaPoly, sr))
-          val permutationMap = SupportSplittingAlgorithm.findPermutation(
+          permutationMap = SupportSplittingAlgorithm.findPermutation(
             publicKeySignature,
-            Matrix.generateAllCodewords(generatorMatrix.get)
+            GeneratorParityCheckMatrix.generateAllCodewords(gMatrix)
           )
-          println(s"Iterations needed: $iterations\nPermutation Map received $permutationMap\n")
+          generatorMatrix = Some(gMatrix)
         } catch {
           case e: Exception =>
-            generatorMatrix = None
             println(s"${e.getMessage}")
         }
-        println(s"Goppa poly: $goppaPoly\neGenerator matrix:\n${generatorMatrix.get}\ncodewords\n${Matrix.generateAllCodewords(generatorMatrix.get)}")
+        if (verbose.generatorMatrixGeneration) {
+          Logging.ssaGeneratorMatrixGenerationResults(goppaPoly, gMatrix, iteration)
+        }
       }
     }
-    publicKey.getG
+    if (verbose.resultReceived) {
+      Logging.ssaResults(g, generatorMatrix.get, permutationMap, iteration)
+    }
+    generatorMatrix.get
   }
 
 }
 
 object SupportSplittingAlgorithm {
 
-  case class SsaStepResult(
-      duplicatePositions: ListBuffer[ListBuffer[Seq[Int]]],
-      signatures: mutable.Map[Int, String]
+  case class SSAVerboseOptions(
+      generatorMatrixGeneration: Boolean = true,
+      resultReceived: Boolean = true
   )
-  case class SsaResult(signatures: mutable.Map[Int, String])
-  case class ExtraSsaRefine(ssaStep: SsaStepResult, puncturedPosition: Int)
+  case class SsaStepResult(duplicatePositions: ListBuffer[ListBuffer[Seq[Int]]], signatures: Map[Seq[Int], String])
+  case class ExtraSsaRefine(ssaStep: SsaStepResult, puncturedPosition: Option[Int] = None)
+  case class SsaResult(signatures: Map[Int, String])
 
   /**
+    * Get weight enumerator signature for given codewords
     *
     * @param codewords codewords list
     * @return signature of given codeword or exception
     * @throws Exception if impossible to find signature
     */
-  def getSignature(codewords: List[GF2Vector]): mutable.Map[Int, String] =
-  {
+  def getSignature(codewords: List[GF2Vector]): Map[Seq[Int], String] = {
     val n = codewords.head.getLength
-    val puncturePositions = 0 until n
-    val initialSsaResult = ssaStep(codewords, puncturePositions.combinations(1))
-    var ssaResult: Option[SsaResult] = None
-
-    // fully discriminant signature found
-    if (initialSsaResult.duplicatePositions.isEmpty) {
-      ssaResult = Some(SsaResult(initialSsaResult.signatures))
-    } else {
-      // trying to refine
-      ssaResult = ssaRefine(
-        codewords,
-        initialSsaResult.duplicatePositions,
-        initialSsaResult.signatures,
-        (initialSsaResult.signatures.keys.toSeq ++ puncturePositions).distinct
-      )
+    val signatures = ssa(codewords, 0 until n)
+    if (signatures.size != n) {
+      throw new Exception("[Cannot find a signatures] Fully discriminant signature doesn't exist")
     }
-    if (ssaResult.isDefined) {
-      ssaResult.get.signatures
-    } else {
-      throw new Exception("Couldn't find signature")
-    }
+    signatures
   }
 
   /**
+    * Punctures codewords and checks Hamming weight distribution
     *
     * @param codewords         codewords list
     * @param puncturePositions list positions to puncture codewords at
@@ -112,12 +108,12 @@ object SupportSplittingAlgorithm {
   def ssaStep(codewords: List[GF2Vector], puncturePositions: Iterator[Seq[Int]]): SsaStepResult = {
     val duplicatePositions = ListBuffer[ListBuffer[Seq[Int]]]()
     val partitions = mutable.Map.empty[String, ListBuffer[Seq[Int]]]
-    val signatures = mutable.Map.empty[Int, String]
+    val signatures = mutable.Map.empty[Seq[Int], String]
 
     for (puncturePositions <- puncturePositions) {
       val weightEnumPos = getHammingWeightDistribution(puncture(codewords, puncturePositions))
       // Could use hashCode for efficiency
-      val enum = weightEnumPos.toString
+      val enum = weightEnumPos.toSeq.sortBy(_._1).toString
       if (!partitions.isDefinedAt(enum)) {
         partitions(enum) = new ListBuffer[Seq[Int]]()
       }
@@ -127,81 +123,138 @@ object SupportSplittingAlgorithm {
       if (partition.length > 1) {
         duplicatePositions += partition
       } else {
-        signatures(partition.head.head) = enum
+        signatures(partition.head) = enum
       }
     }
-    SsaStepResult(duplicatePositions, signatures)
+    SsaStepResult(duplicatePositions, signatures.toMap)
   }
 
   /**
     *
     * @param codewords          codewords list
-    * @param duplicatePositions positions which have identical weight enumerator
-    * @param signatures         map of position -> weight enumerator
     * @param puncturePositions  list positions to puncture codewords at
+    * @param signatures         map of position -> weight enumerator
+    * @param duplicatePositions positions which have identical weight enumerator
     * @param signaturesToFind   map of signatures we trying to find
     * @return signatures if possible
     */
-  def ssaRefine(codewords: List[GF2Vector],
-                duplicatePositions: ListBuffer[ListBuffer[Seq[Int]]],
-                signatures: mutable.Map[Int, String],
-                puncturePositions: Seq[Int],
-                signaturesToFind: Option[mutable.Map[Int, String]] = None
-               ): Option[SsaResult] = {
+  def ssa(codewords: List[GF2Vector],
+          puncturePositions: Seq[Int],
+          signatures: Map[Seq[Int], String] = Map.empty[Seq[Int], String],
+          duplicatePositions: ListBuffer[Seq[Int]] = ListBuffer.empty[Seq[Int]],
+          signaturesToFind: Option[Map[Seq[Int], String]] = None
+         ): Map[Seq[Int], String] = {
+    var localSignatures = Map.empty[Seq[Int], String]
     var extraSsaStepsToRefine = ListBuffer.empty[ExtraSsaRefine]
-    var ssaResult: Option[SsaResult] = None
-    val puncturePositionsIt = puncturePositions.iterator
     val shouldCompare = signaturesToFind.isDefined
+    // Initial puncture
+    if (duplicatePositions.isEmpty && signatures.isEmpty) {
+      val ssaStepResult = ssaStep(codewords, puncturePositions.combinations(1))
+      println(
+        s"Result: $ssaStepResult"
+      )
+      if (ssaStepResult.duplicatePositions.isEmpty) {
+        // check if all signatures are unique
+        if (!shouldCompare || ssaStepResult.signatures.values.toSeq.forall(signaturesToFind.get.values.toSeq.contains)) {
+          localSignatures = ssaStepResult.signatures
+        }
+        // else we ignore this solution
+      } else {
+        extraSsaStepsToRefine += ExtraSsaRefine(ssaStepResult)
+      }
+    } else {
+      //val puncturePositionsIt = scala.util.Random.shuffle(puncturePositions).iterator
+      // @TODO ask if is possible without the knowledge of S, show example
+      val puncturePositionsIt = puncturePositions.diff(duplicatePositions.flatten.distinct).iterator
 
-    while (ssaResult.isEmpty && puncturePositionsIt.hasNext) {
-      val puncturePosition = puncturePositionsIt.next
-      for {
-        uniqueDuplicatePositions <- duplicatePositions
-      } yield {
-        val refinementPositions = ListBuffer[Seq[Int]]()
-        for (position <- uniqueDuplicatePositions) {
+      while (localSignatures.isEmpty && puncturePositionsIt.hasNext) {
+        val puncturePosition = puncturePositionsIt.next
+        var refinementPositions = ListBuffer.empty[Seq[Int]]
+        for (position <- duplicatePositions) {
+          // the unique keys just don't work (what the fuck?!!!)
+          // refinementPositions += (position :+ puncturePosition).distinct
           refinementPositions += position :+ puncturePosition
         }
         val ssaStepResult = ssaStep(codewords, refinementPositions.iterator)
         /*println(
-          s"Signatures:\n$signatures\nSsa step result duplicate positions:\n" +
-            ssaStepResult.duplicatePositions + "\n"
+          s"Puncture position added: $puncturePosition\nPucture positions:\n" +
+            s"$refinementPositions\nResult: $ssaStepResult"
         )*/
-        // check if we have all signatures
+        // check if we have only signatures
         if (ssaStepResult.duplicatePositions.isEmpty) {
           // check if all signatures are unique
-          if (
-            !ssaStepResult.signatures.values.exists(signatures.values.toSeq.contains)
-              && (
-              !shouldCompare
-                || ssaStepResult.signatures.values.toSeq.forall(signaturesToFind.get.values.toSeq.contains)
-              )
-          ) {
-            // fully discriminant signature found
-            ssaResult = Some(SsaResult(signatures ++ ssaStepResult.signatures))
-          } else {
-            // collision or comparing
-            if (!ssaStepResult.signatures.values.exists(signatures.values.toSeq.contains))
-              println("Collision case!")
-            // todo fix collision case
+          val duplicateSignatures = ListBuffer.empty[ListBuffer[Seq[Int]]]
+          val newSignatures = mutable.Map.empty[Seq[Int], String]
+          // at first we try only unique partitions, when we try all
+          val currentSignatures = signatures.values.toSeq
+          for {
+            (newSignature, partition) <- ssaStepResult.signatures
+          } yield {
+            if (currentSignatures.contains(partition)) {
+              duplicateSignatures += ListBuffer[Seq[Int]](newSignature)
+            } else {
+              newSignatures(newSignature) = partition
+            }
           }
+          if (duplicateSignatures.nonEmpty) {
+            //println(s"Duplicates $duplicateSignatures\nNew Signatures: $newSignatures")
+          }
+          if (duplicateSignatures.isEmpty) {
+            localSignatures = ssaStepResult.signatures
+          } else {
+            /*if (!shouldCompare || ssaStepResult.signatures.values.toSeq.forall(signaturesToFind.get.values.toSeq.contains)) {
+              throw new Exception("WE ARE FUCKED")
+            }*/
+            extraSsaStepsToRefine += ExtraSsaRefine(
+              SsaStepResult(duplicateSignatures, newSignatures.toMap),
+              Some(puncturePosition)
+            )
+            /*if (
+              !ssaStepResult.signatures.values.exists(signatures.values.toSeq.contains)
+                && (!shouldCompare || ssaStepResult.signatures.values.toSeq.forall(signaturesToFind.get.values.toSeq.contains))
+              ) {
+              localSignatures = ssaStepResult.signatures
+            }*/
+            // we do something
+          }
+          // else we ignore this solution
         } else {
-          // try to refine again
-          extraSsaStepsToRefine += ExtraSsaRefine(ssaStepResult, puncturePosition)
+          extraSsaStepsToRefine += ExtraSsaRefine(ssaStepResult, Some(puncturePosition))
         }
       }
     }
-    val refineIt = extraSsaStepsToRefine.iterator
-    while (ssaResult.isEmpty && refineIt.hasNext) {
-      val toRefine = refineIt.next
-      ssaResult = ssaRefine(
-        codewords,
-        toRefine.ssaStep.duplicatePositions,
-        toRefine.ssaStep.signatures ++ signatures,
-        puncturePositions.diff(Seq(toRefine.puncturedPosition))
-      )
+    if (localSignatures.isEmpty) {
+      val nextLevelIt = extraSsaStepsToRefine.iterator
+      while (localSignatures.isEmpty && nextLevelIt.hasNext) {
+        var nextLevelSignatures = Map.empty[Seq[Int], String]
+        var found = true
+        val refine = nextLevelIt.next
+        val uniqueDuplicateIt = refine.ssaStep.duplicatePositions.iterator
+        while (found && uniqueDuplicateIt.hasNext) {
+          val newPuncturePositions = if (refine.puncturedPosition.isDefined) {
+            puncturePositions.diff(Seq(refine.puncturedPosition.get))
+          } else {
+            puncturePositions
+          }
+          //println(s"we get here:$newPuncturePositions from $puncturePositions, and pos: ${refine.puncturedPosition}")
+          val result = ssa(
+            codewords,
+            newPuncturePositions,
+            signatures ++ refine.ssaStep.signatures ++ nextLevelSignatures,
+            uniqueDuplicateIt.next
+          )
+          if (result.isEmpty) {
+            found = false
+          } else {
+            nextLevelSignatures ++= result
+          }
+        }
+        if (found) {
+          localSignatures = nextLevelSignatures ++ refine.ssaStep.signatures
+        }
+      }
     }
-    ssaResult
+    localSignatures
   }
 
   /**
@@ -212,57 +265,43 @@ object SupportSplittingAlgorithm {
     * @return
     * @throws Exception if permutation or signature cannot be found
     */
-  def findPermutation(signatures: mutable.Map[Int, String], codewords: List[GF2Vector]): mutable.Map[Int, Int] = {
+  def findPermutation(signatures: Map[Seq[Int], String], codewords: List[GF2Vector]): Map[Int, Int] = {
     val n = codewords.head.getLength
-    val puncturePositions = 0 until n
-    val initialSsaResult = ssaStep(codewords, puncturePositions.combinations(1))
-    // Check if received signatures are compatible with given signatures
-    if (initialSsaResult.signatures.values.toList.exists( signature => !signatures.values.toSeq.contains(signature))) {
-      throw new Exception("Cannot find a permutation") // Should I use this???
-    }
-    if (initialSsaResult.duplicatePositions.isEmpty) {
-      // fully discriminant signature found
-      mapSignatures(signatures, initialSsaResult.signatures)
+    val signaturesToMatch = ssa(codewords, 0 until n, signaturesToFind = Some(signatures))
+
+    if (signaturesToMatch.nonEmpty) {
+      mapSignatures(signatures, signaturesToMatch)
     } else {
-      // trying to refine
-      val ssaResult = ssaRefine(
-        codewords,
-        initialSsaResult.duplicatePositions,
-        initialSsaResult.signatures,
-        (initialSsaResult.signatures.keys.toSeq ++ puncturePositions).distinct,
-        Some(signatures)
-      )
-      if (ssaResult.isDefined) {
-        mapSignatures(signatures, ssaResult.get.signatures)
-      } else {
-        throw new Exception("Couldn't find signature")
-      }
+      throw new Exception("[Cannot find signatures] No signature received")
     }
   }
 
   /**
     * Create the permutation map for two linear codes based on their signatures
     *
-    * @param signatures  signature of linear code C
-    * @param signatures2 signature of linear code C'
+    * @param signatures        signature of linear code C
+    * @param signaturesToMatch signature of linear code C'
     * @return permutation map
+    * @throws Exception if permutation or signature cannot be found
     */
-  def mapSignatures(signatures: mutable.Map[Int, String], signatures2: mutable.Map[Int, String]): mutable.Map[Int, Int] = {
-    // @TODO check if permutation map is correct
+  def mapSignatures(signatures: Map[Seq[Int], String], signaturesToMatch: Map[Seq[Int], String]): Map[Int, Int] = {
     val permutation = mutable.Map.empty[Int, Int]
     for {
       (position, signature) <- signatures
-      (position2, signature2) <- signatures2
+      (positionToMatch, signatureToMatch) <- signaturesToMatch
     } yield {
-      if (signature == signature2) {
-        permutation(position) = position2
+      if (signature == signatureToMatch && position.length == positionToMatch.length) {
+        permutation(position.head) = positionToMatch.head
       }
     }
-    permutation
+    if (permutation.size != signatures.size) {
+      throw new Exception("[Cannot find a permutation] Different signatures received.")
+    }
+    permutation.toMap
   }
 
   /**
-    * Get Hamming weight distribution
+    * Get Hamming weight distribution (NP-hard hard problem)
     * Note. It is possible to use the hull of weight enumerator,
     * but it is less efficient with n <= 1000 (@see N. Sendrier. The Support Splitting Algorithm)
     *
@@ -299,6 +338,25 @@ object SupportSplittingAlgorithm {
       puncturedCodewords += new GF2Vector(vector.getLength, out)
     }
     puncturedCodewords.toList
+  }
+
+  /**
+    * Swap codewords by a given permutation
+    *
+    * @param codewords      list of codeword vectors
+    * @param permutationMap permutation map
+    * @return list of permuted codewords
+    */
+  def swapByPermutationMap(codewords: List[GF2Vector], permutationMap: Map[Int, Int]): List[GF2Vector] = {
+    val permutedCodewords = new ListBuffer[GF2Vector]()
+    val positions = new ListBuffer[Int]()
+    for (permutation <- permutationMap.toSeq.sortBy(_._1)) {
+      positions += permutation._2
+    }
+    for (codeword <- codewords) {
+      permutedCodewords += Vector.createGF2VectorFromColumns(codeword, positions.toList)
+    }
+    permutedCodewords.toList
   }
 
 }

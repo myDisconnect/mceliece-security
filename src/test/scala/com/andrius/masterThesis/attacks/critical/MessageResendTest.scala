@@ -8,12 +8,12 @@ import org.scalatest.FlatSpec
 
 class MessageResendTest extends FlatSpec {
 
-  behavior of "MessageResendAttack"
+  behavior of "Message resend attack"
 
   val logPartial = false
-  val logTotal = true
+  val logTotal = false
 
-  it should "attack and in most cases succeed" in {
+  it should "attack and succeed in most cases" in {
     val configuration = Configuration(m = 5, t = 2)
     var totalTries = 0
     var totalExpectedTries = 0d
@@ -22,7 +22,7 @@ class MessageResendTest extends FlatSpec {
       val mcEliecePKC = new McElieceCryptosystem(configuration)
       val messageResend = new MessageResend(mcEliecePKC.publicKey)
       for (_ <- 0 until 100) {
-        val msg = Vector.generateMessageVector(mcEliecePKC.publicKey.getK)
+        val msg = Vector.generateMessageVector(configuration.k)
         val cipher1 = mcEliecePKC.encryptVector(msg)
         val cipher2 = mcEliecePKC.encryptVector(msg)
         if (!cipher1.equals(cipher2)) {
@@ -33,9 +33,9 @@ class MessageResendTest extends FlatSpec {
             totalTries += 1
           }
           val l1Length = cipher1.add(cipher2).asInstanceOf[GF2Vector].getHammingWeight
-          val l0Length = mcEliecePKC.publicKey.getN - l1Length
-          val unknownErrors = (2 * mcEliecePKC.publicKey.getT - l1Length) / 2
-          val guessProbability = Combinatorics.combinations(l0Length - unknownErrors, mcEliecePKC.publicKey.getK).toDouble / Combinatorics.combinations(l0Length, mcEliecePKC.publicKey.getK).toDouble
+          val l0Length = configuration.n - l1Length
+          val unknownErrors = (2 * mcEliecePKC.publicKey.t - l1Length) / 2
+          val guessProbability = Combinatorics.combinations(l0Length - unknownErrors, configuration.k).toDouble / Combinatorics.combinations(l0Length, configuration.k).toDouble
           val expectedTries = 1 / guessProbability
           totalExpectedTries += expectedTries
           if (logPartial) {

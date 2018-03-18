@@ -8,15 +8,15 @@ object ArrayUtils {
   /**
     * Clones the provided array
     *
-    * @param in Array to clone
+    * @param in array to clone
     * @return a new clone of the provided array
     */
   def cloneArray(in: Array[Array[Int]]): Array[Array[Int]] = {
-    val length = in.length
-    val out = Array.ofDim[Int](length, in(0).length)
-    for (i <-0 until length) {
-      System.arraycopy(in(i), 0, out(i), 0, in(i).length)
-    }
+    val out = Array.ofDim[Int](in.length, in(0).length)
+    for {
+      i <- in.indices
+      j <- in(i).indices
+    } out(i)(j) = in(i)(j)
     out
   }
 
