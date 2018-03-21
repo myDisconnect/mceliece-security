@@ -7,7 +7,7 @@ import org.scalatest.FlatSpec
 
 class LeeBrickellTest extends FlatSpec {
 
-  behavior of "LeeBrickellAttack"
+  behavior of "Lee-Brickell (GISD) attack"
 
   it should "attack and never fail" in {
     val configuration = Configuration(m = 5, t = 2)
@@ -17,7 +17,7 @@ class LeeBrickellTest extends FlatSpec {
       val leeBrickell = new LeeBrickell(mcEliecePKC.publicKey)
       for (_ <- 0 until 100) {
 
-        val msg = Vector.generateMessageVector(mcEliecePKC.publicKey.getK)
+        val msg = Vector.generateMessageVector(configuration.k)
         val cipher = mcEliecePKC.encryptVector(msg)
         assert(leeBrickell.attack(cipher).equals(msg), "Algorithm implemented incorrectly")
       }

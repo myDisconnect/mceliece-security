@@ -64,7 +64,7 @@ object Main {
       val leeBrickell = new LeeBrickell(mcEliecePKC.publicKey)
 
       for (_ <- 0 until messageCount) {
-        val msg = Vector.generateMessageVector(mcEliecePKC.publicKey.getK)
+        val msg = Vector.generateMessageVector(configuration.k)
         val cipher = mcEliecePKC.encryptVector(msg)
 
         val start = System.currentTimeMillis
@@ -115,7 +115,7 @@ object Main {
         val mcEliecePKC = new McElieceCryptosystem(configuration)
         val partial = new KnownPartialPlaintext(mcEliecePKC.publicKey)
         for (_ <- 0 until messageCount) {
-          val msg = Vector.generateMessageVector(mcEliecePKC.publicKey.getK)
+          val msg = Vector.generateMessageVector(configuration.k)
           val cipher = mcEliecePKC.encryptVector(msg)
           val knownRight = msg.extractRightVector(kRight)
 
@@ -143,7 +143,7 @@ object Main {
             attackIds,
             messageCount,
             timeResultsKeyPair,
-            s" with $kRight/${mcEliecePKC.publicKey.getK} known"
+            s" with $kRight/${configuration.k} known"
           )
         }
       }
@@ -210,7 +210,7 @@ object Main {
       val mcEliecePKC = new McElieceCryptosystem(configuration)
       val messageResend = new MessageResend(mcEliecePKC.publicKey)
       for (_ <- 0 until messageCount) {
-        val msg = Vector.generateMessageVector(mcEliecePKC.publicKey.getK)
+        val msg = Vector.generateMessageVector(configuration.k)
 
         val cipher1 = mcEliecePKC.encryptVector(msg)
         val cipher2 = mcEliecePKC.encryptVector(msg)
@@ -225,6 +225,7 @@ object Main {
           while (!found) {
             // it is possible to check if padding is correct (filter failures)
             // Vector.computeMessage(messageResend.attack(cipher1, cipher2))
+            val result = messageResend.attack(cipher1, cipher2)
             if (messageResend.attack(cipher1, cipher2).equals(msg)) {
               val end = System.currentTimeMillis - start
               if (configuration.verbose.partialResults) {
@@ -296,9 +297,9 @@ object Main {
       val mcEliecePKC = new McElieceCryptosystem(configuration)
       val relatedMessage = new RelatedMessage(mcEliecePKC.publicKey)
       for (_ <- 0 until messageCount) {
-        val msg1 = Vector.generateMessageVector(mcEliecePKC.publicKey.getK)
+        val msg1 = Vector.generateMessageVector(configuration.k)
         // For example, we know that message vector always differ in every 32 position
-        val mDelta = new GF2Vector(mcEliecePKC.publicKey.getK, Array.fill((mcEliecePKC.publicKey.getK - 1) / 32 + 1)(1))
+        val mDelta = new GF2Vector(configuration.k, Array.fill((configuration.k - 1) / 32 + 1)(1))
         val msg2 = msg1.add(mDelta).asInstanceOf[GF2Vector]
 
         val cipher1 = mcEliecePKC.encryptVector(msg1)
@@ -377,7 +378,7 @@ object Main {
       for (_ <- 0 until messageCount) {
         val start = System.currentTimeMillis
 
-        ssa.attack()
+        //ssa.attack
         val end = System.currentTimeMillis - start
         if (configuration.verbose.partialResults) {
           timeResultsKeyPair += end

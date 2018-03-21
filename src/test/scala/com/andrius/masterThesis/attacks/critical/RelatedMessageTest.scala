@@ -8,12 +8,12 @@ import org.scalatest.FlatSpec
 
 class RelatedMessageTest extends FlatSpec {
 
-  behavior of "RelatedMessageAttack"
+  behavior of "Related message attack"
 
   val logPartial = false
   val logTotal = true
 
-  it should "attack and in most cases succeed" in {
+  it should "attack and succeed in most cases" in {
     val configuration = Configuration(m = 5, t = 2)
     var totalTries = 0
     var totalExpectedTries = 0d
@@ -22,9 +22,9 @@ class RelatedMessageTest extends FlatSpec {
       val mcEliecePKC = new McElieceCryptosystem(configuration)
       val relatedMessage = new RelatedMessage(mcEliecePKC.publicKey)
       for (_ <- 0 until 100) {
-        val msg1 = Vector.generateMessageVector(mcEliecePKC.publicKey.getK)
+        val msg1 = Vector.generateMessageVector(configuration.k)
         // For example, we know that message vector always differ in every 32 position
-        val mDelta = new GF2Vector(mcEliecePKC.publicKey.getK, Array.fill((mcEliecePKC.publicKey.getK - 1) / 32 + 1)(1))
+        val mDelta = new GF2Vector(configuration.k, Array.fill((configuration.k - 1) / 32 + 1)(1))
         val msg2 = msg1.add(mDelta).asInstanceOf[GF2Vector]
         val cipher1 = mcEliecePKC.encryptVector(msg1)
         val cipher2 = mcEliecePKC.encryptVector(msg2)
@@ -35,10 +35,10 @@ class RelatedMessageTest extends FlatSpec {
             tries += 1
             totalTries += 1
           }
-          val l1Length = mcEliecePKC.publicKey.getG.leftMultiply(mDelta).add(cipher1.add(cipher2)).asInstanceOf[GF2Vector].getHammingWeight
-          val l0Length = mcEliecePKC.publicKey.getN - l1Length
-          val unknownErrors = (2 * mcEliecePKC.publicKey.getT - l1Length) / 2
-          val guessProbability = Combinatorics.combinations(l0Length - unknownErrors, mcEliecePKC.publicKey.getK).toDouble / Combinatorics.combinations(l0Length, mcEliecePKC.publicKey.getK).toDouble
+          val l1Length = mcEliecePKC.publicKey.gPublic.leftMultiply(mDelta).add(cipher1.add(cipher2)).asInstanceOf[GF2Vector].getHammingWeight
+          val l0Length = configuration.n - l1Length
+          val unknownErrors = (2 * mcEliecePKC.publicKey.t - l1Length) / 2
+          val guessProbability = Combinatorics.combinations(l0Length - unknownErrors, configuration.k).toDouble / Combinatorics.combinations(l0Length, configuration.k).toDouble
           val expectedTries = 1 / guessProbability
           totalExpectedTries += expectedTries
           if (logPartial) {

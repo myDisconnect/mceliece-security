@@ -6,9 +6,43 @@ import org.bouncycastle.pqc.math.linearalgebra.{GF2Vector, IntUtils}
 import scala.util.Random
 
 /**
-  * Vector utilities
+  * Utilities for vectors over finite field GF(2)
   */
 object Vector {
+
+  /**
+    * Create GF2Vector from sequence of [0,1]
+    *
+    * @param sequence elements containing 0 or 1
+    * @return
+    */
+  def createGF2Vector(sequence: Seq[Int]): GF2Vector = {
+    val length = sequence.length
+    val out = Array.fill((length - 1) / 32 + 1)(0)
+
+    for (i <- 0 until length) {
+      val q = i >> 5
+      val r = i & 0x1f
+      out(q) += (1 << r) * sequence(i)
+    }
+    new GF2Vector(length, out)
+  }
+
+  /**
+    * Create new vector from column list
+    *
+    * @param in      input vector
+    * @param columns columns to extract from input vector
+    * @return
+    */
+  def createGF2VectorFromColumns(in: GF2Vector, columns: List[Int]): GF2Vector = {
+    val out = Array.fill((columns.length - 1) / 32 + 1)(0)
+    val vector = in.getVecArray
+    for ((indexToTake, indexToSet) <- columns.zipWithIndex) {
+      Vector.setColumn(out, Vector.getColumn(vector, indexToTake), indexToSet)
+    }
+    new GF2Vector(columns.length, out)
+  }
 
   /**
     * Generate a random message vector of given length
@@ -58,7 +92,9 @@ object Vector {
     }
 
     // check if padding byte is valid
-    if (index < 0 || mrBytes(index) != 0x01) throw new InvalidCipherTextException("Bad Padding: invalid ciphertext")
+    if (index < 0 || mrBytes(index) != 0x01) {
+      throw new InvalidCipherTextException("Bad Padding: invalid ciphertext")
+    }
     // extract and return message
     val mBytes = new Array[Byte](index)
     System.arraycopy(mrBytes, 0, mBytes, 0, index)
@@ -78,22 +114,6 @@ object Vector {
       Vector.setColumn(out, Vector.getColumn(right.getVecArray, i), i + left.getLength)
     }
     new GF2Vector(left.getLength + right.getLength, out)
-  }
-
-  /**
-    * Create new vector from column list
-    *
-    * @param in      input vector
-    * @param columns columns to extract from input vector
-    * @return
-    */
-  def createGF2VectorFromColumns(in: GF2Vector, columns: List[Int]): GF2Vector = {
-    val out = Array.fill((columns.length - 1) / 32 + 1)(0)
-    val vector = in.getVecArray
-    for ((indexToTake, indexToSet) <- columns.zipWithIndex) {
-      Vector.setColumn(out, Vector.getColumn(vector, indexToTake), indexToSet)
-    }
-    new GF2Vector(columns.length, out)
   }
 
   /**
@@ -124,24 +144,6 @@ object Vector {
     if (el != value) {
       in(length) = a ^ (1 << elem)
     }
-  }
-
-  /**
-    * Create GF2Vector from sequence of [0,1]
-    *
-    * @param sequence elements containing 0 or 1
-    * @return
-    */
-  def createGF2Vector(sequence: Seq[Int]): GF2Vector = {
-    val length = sequence.length
-    val out = Array.fill((length - 1) / 32 + 1)(0)
-
-    for (i <- 0 until length) {
-      val q = i >> 5
-      val r = i & 0x1f
-      out(q) += (1 << r) * sequence(i)
-    }
-    new GF2Vector(length, out)
   }
 
 }

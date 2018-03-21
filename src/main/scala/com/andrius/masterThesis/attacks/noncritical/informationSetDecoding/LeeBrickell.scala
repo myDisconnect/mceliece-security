@@ -1,9 +1,9 @@
 package com.andrius.masterThesis.attacks.noncritical.informationSetDecoding
 
+import com.andrius.masterThesis.mceliece.McElieceCryptosystem.McEliecePublicKey
 import com.andrius.masterThesis.utils.Math
 import com.andrius.masterThesis.utils.Matrix
 import com.andrius.masterThesis.utils.Vector
-import org.bouncycastle.pqc.jcajce.provider.mceliece.BCMcEliecePublicKey
 import org.bouncycastle.pqc.math.linearalgebra.{GF2Matrix, GF2Vector}
 
 import scala.collection.immutable.Range
@@ -18,12 +18,12 @@ import scala.collection.mutable
   * @see D. Engelbert, R. Overbeck and A. Schmidt. A Summary of McEliece-Type Cryptosystems and their Security (https://eprint.iacr.org/2006/162)
   * @see C. Peters. Explicit Bounds for Generic Decoding Algorithms for Code-Based Cryptography (https://christianepeters.files.wordpress.com/2012/10/20090401-eipsi.pdf)
   */
-class LeeBrickell(publicKey: BCMcEliecePublicKey) {
+class LeeBrickell(publicKey: McEliecePublicKey) {
 
-  val g: GF2Matrix = publicKey.getG
+  val g: GF2Matrix = publicKey.gPublic
   val n: Int = g.getNumColumns
   val k: Int = g.getNumRows
-  val t: Int = publicKey.getT
+  val t: Int = publicKey.t
 
   /**
     * Try to guess k correct positions in the received word.
@@ -39,7 +39,7 @@ class LeeBrickell(publicKey: BCMcEliecePublicKey) {
     var decipheredMsg = new GF2Vector(k)
     var found = false
     val columns = (0 until n).toList
-    val failedTriesDictionary = new mutable.HashSet[Set[Int]]()
+    val failedTriesDictionary = mutable.HashSet.empty[Set[Int]]
     while (!found) {
       // Step 1. We randomise a possible "information-set" columns
       val i = Math.sample(columns, k)

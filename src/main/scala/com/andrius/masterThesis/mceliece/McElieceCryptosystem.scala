@@ -4,14 +4,14 @@ import java.nio.charset.{Charset, StandardCharsets}
 import java.security._
 
 import com.andrius.masterThesis.mceliece.McElieceCryptosystem._
-import com.andrius.masterThesis.utils.{Logging, Vector}
-import org.bouncycastle.pqc.crypto.mceliece.{McEliecePrivateKeyParameters, McEliecePublicKeyParameters}
-import org.bouncycastle.pqc.jcajce.provider.mceliece.{BCMcEliecePrivateKey, BCMcEliecePublicKey}
-import org.bouncycastle.pqc.math.linearalgebra.{GF2Matrix, GF2Vector, GF2mField, GoppaCode, Permutation, PolynomialGF2mSmallM, PolynomialRingGF2}
+import com.andrius.masterThesis.utils.{Goppa, Logging, Vector}
+import org.bouncycastle.pqc.math.linearalgebra.{GF2Matrix, GF2Vector, GF2mField, GoppaCode, Permutation, PolynomialGF2mSmallM, PolynomialRingGF2, PolynomialRingGF2m}
 
 /**
-  * Original McEliece cryptosystem (A wrapper for bouncycastle McEliece implementation with small modifications
-  * and more flexible methods)
+  * McEliece public key cryptosystem implementation
+  *
+  * Notes on current implementation used:
+  * - The systematic generator matrix is recovered from parity-check H matrix via permutation
   *
   * @see R.J. McEliece. A public-key cryptosystem based on algebraic. (https://tmo.jpl.nasa.gov/progress_report2/42-44/44N.PDF)
   * @see Great introductory slides about McEliece: http://www-math.ucdenver.edu/~wcherowi/courses/m5410/mcleice.pdf
@@ -20,34 +20,42 @@ import org.bouncycastle.pqc.math.linearalgebra.{GF2Matrix, GF2Vector, GF2mField,
   * @param config McEliece configuration parameters
   */
 class McElieceCryptosystem(config: Configuration) {
+  import McElieceCryptosystem._
 
   private val sr = new SecureRandom
 
   // Degree of the finite field GF(2^m)
-  private val m: Int = config.m
+  val m: Int = config.m
 
   // Error correction capability of the code
-  private val t: Int = config.t
+  val t: Int = config.t
 
   // Linear code length
-  private val n: Int = config.n
+  val n: Int = config.n
 
   // Linear code dimension
-  private val k: Int = config.k
+  val k: Int = config.k
 
   // Generate original McEliece cryptosystem public and private keys
   private val generatedKeys = {
     // finite field GF(2^m)
-    val fieldPoly = PolynomialRingGF2.getIrreduciblePolynomial(m)
+    val fieldPoly = Goppa.getIrreduciblePolynomial(m, sr)
     val field = new GF2mField(m, fieldPoly)
 
     // irreducible Goppa polynomial
     val gp = new PolynomialGF2mSmallM(field, t, PolynomialGF2mSmallM.RANDOM_IRREDUCIBLE_POLYNOMIAL, sr)
+    val ring = new PolynomialRingGF2m(field, gp)
 
-    // generate canonical check matrix
+    // matrix used to compute square roots in (GF(2^m))^t
+    val sqRootMatrix = ring.getSquareRootMatrix
+
+    // generate (k x n) canonical check matrix
     val h = GoppaCode.createCanonicalCheckMatrix(field, gp)
 
-    // compute short systematic form of check matrix
+    // get (k x n) generator matrix from parity check matrix
+    //val g = GeneratorParityCheckMatrix.findNullSpace(h)
+
+    // canonical parity-check matrix is not always can be converted to systematic, so it is permuted to make it orthogonal
     val mmp = GoppaCode.computeSystematicForm(h, sr)
     val shortH = mmp.getSecondMatrix
     val p1 = mmp.getPermutation
@@ -55,115 +63,143 @@ class McElieceCryptosystem(config: Configuration) {
     // compute short systematic form of generator matrix
     val shortG = shortH.computeTranspose.asInstanceOf[GF2Matrix]
 
-    // extend to full systematic form
-    val gPrime = shortG.extendLeftCompactForm
-
     // obtain number of rows of G (= dimension of the code)
     val k = shortG.getNumRows
+
+    // extend to full systematic form
+    val gPrime = shortG.extendLeftCompactForm
 
     // generate random invertible (k x k)-matrix S and its inverse S^-1
     val matrixSandInverse = GF2Matrix.createRandomRegularMatrixAndItsInverse(k, sr)
 
-    // generate random permutation P2
-    val p2 = new Permutation(n, sr)
+    // generate random n-length permutation P
+    val p = new Permutation(n, sr)
 
-    // compute public matrix G=S*G'*P2
-    val g = matrixSandInverse(0).rightMultiply(gPrime).asInstanceOf[GF2Matrix].rightMultiply(p2).asInstanceOf[GF2Matrix]
+    // compute public matrix G' = S * G * P
+    val gPub = matrixSandInverse(0).rightMultiply(gPrime).rightMultiply(p).asInstanceOf[GF2Matrix]
+
     if (config.verbose.keyPairGeneration) {
-      Logging.keyPairGenerationResults(gp, gPrime, matrixSandInverse(0), p1.rightMultiply(p2))
+      Logging.keyPairGenerationResults(gp, gPrime, matrixSandInverse(0), p1.rightMultiply(p))
     }
-    // generate keys
-    McElieceCryptosystem.McElieceKeyPair(
-      new BCMcEliecePublicKey(new McEliecePublicKeyParameters(n, t, g)),
-      new BCMcEliecePrivateKey(new McEliecePrivateKeyParameters(n, k, field, gp, p1, p2, matrixSandInverse(1)))
+    // generate public and private keys
+    // we pass parity-check matrix to private key for syndrome decoding
+    McElieceKeyPair(
+      McEliecePublicKey(gPub, t, p1),
+      McEliecePrivateKey(matrixSandInverse(1), h, p1.rightMultiply(p).computeInverse, field, gp, sqRootMatrix)
     )
   }
 
-  val publicKey: BCMcEliecePublicKey = generatedKeys.publicKey
-  private val privateKey = generatedKeys.privateKey
+  val publicKey: McEliecePublicKey = generatedKeys.publicKey
+  // This should be always private, but in order to test SSA left public
+  val privateKey: McEliecePrivateKey = generatedKeys.privateKey
 
   /**
-    * Encrypt vector with public key
+    * Encrypt message vector with public key
     *
-    * @param m message
-    * @return cipher
+    * @param m message vector
+    * @return cipher vector
     */
   def encryptVector(m: GF2Vector): GF2Vector = {
-    val e = new GF2Vector(n, publicKey.getT, sr)
-    val g = publicKey.getG
-    val mG = g.leftMultiply(m)
+    // generate random n-length vector of t hamming weight
+    val e = new GF2Vector(n, t, sr)
+    // compute m * G'
+    val mG = publicKey.gPublic.leftMultiply(m)
+
     if (config.verbose.cipherGeneration) {
       Logging.cipherGenerationResults(m, mG.asInstanceOf[GF2Vector], e)
     }
-    // compute mG+e
+    // compute c = m * G' + e
     mG.add(e).asInstanceOf[GF2Vector]
   }
 
+  /**
+    * Encrypt message vector with public key
+    *
+    * @param m message vector
+    * @return cipher byte array
+    */
   def encrypt(m: GF2Vector): Array[Byte] = {
     encryptVector(m).getEncoded
   }
 
-  def encrypt(m: Array[Byte]): Array[Byte] =
-    encrypt(Vector.computeMessageRepresentative(publicKey.getK, m))
-
-  def encrypt(m: String): Array[Byte] =
-    encrypt(m.getBytes(McElieceCryptosystem.Charset))
+  /**
+    * Encrypt message byte array with public key
+    *
+    * @param m message byte array
+    * @return cipher byte array
+    */
+  def encrypt(m: Array[Byte]): Array[Byte] = {
+    encrypt(Vector.computeMessageRepresentative(k, m))
+  }
 
   /**
-    * Decrypt vector with private key
+    * Encrypt UTF-8 message string with public key
     *
-    * @param c cipher
-    * @return message
+    * @param m UTF-8 message string
+    * @return message byte array
+    */
+  def encrypt(m: String): Array[Byte] = {
+    encrypt(m.getBytes(McElieceCryptosystem.Charset))
+  }
+
+  /**
+    * Decrypt cipher vector with private key
+    *
+    * @param c cipher vector
+    * @return message vector
     */
   def decryptVector(c: GF2Vector): GF2Vector = {
-    val field = privateKey.getField
-    val gp = privateKey.getGoppaPoly
-    val sInv = privateKey.getSInv
-    val p1 = privateKey.getP1
-    val p2 = privateKey.getP2
-    val h = privateKey.getH
-    val qInv = privateKey.getQInv
+    // compute c * P^-1
+    val cPInv = c.multiply(privateKey.pInv).asInstanceOf[GF2Vector]
 
-    // compute permutation P = P1 * P2
-    val p = p1.rightMultiply(p2)
-
-    // compute P^-1
-    val pInv = p.computeInverse
-
-    // compute c P^-1
-    val cPInv = c.multiply(pInv).asInstanceOf[GF2Vector]
-
-    // compute syndrome of c P^-1
-    val syndrome = h.rightMultiply(cPInv).asInstanceOf[GF2Vector]
+    // compute syndrome
+    val syndrome = privateKey.h.rightMultiply(cPInv).asInstanceOf[GF2Vector]
 
     // decode syndrome
-    var z = GoppaCode.syndromeDecode(syndrome, field, gp, qInv)
-    var mSG = cPInv.add(z).asInstanceOf[GF2Vector]
+    val e = GoppaCode.syndromeDecode(syndrome, privateKey.field, privateKey.gp, privateKey.qInv)
 
-    // multiply codeword with P1 and error vector with P
-    mSG = mSG.multiply(p1).asInstanceOf[GF2Vector]
-    z = z.multiply(p).asInstanceOf[GF2Vector]
+    // subtract error vector
+    val mSG = cPInv.add(e).multiply(publicKey.pLocal).asInstanceOf[GF2Vector]
 
     // extract mS (last k columns of mSG)
     val mS = mSG.extractRightVector(k)
 
     // compute plaintext vector
-    sInv.leftMultiply(mS).asInstanceOf[GF2Vector]
+    privateKey.sInv.leftMultiply(mS).asInstanceOf[GF2Vector]
   }
 
+  /**
+    * Decrypt cipher vector with private key
+    *
+    * @param c cipher vector
+    * @return message byte array
+    */
   def decrypt(c: GF2Vector): Array[Byte] = {
     val mVec = decryptVector(c)
     // compute and return plaintext
     Vector.computeMessage(mVec)
   }
 
+  /**
+    * Decrypt cipher byte array with private key
+    *
+    * @param c cipher byte array
+    * @return message byte array
+    */
   def decrypt(c: Array[Byte]): Array[Byte] = {
     val cVec = GF2Vector.OS2VP(n, c)
     decrypt(cVec)
   }
 
-  def decryptString(encryptedByteMessage: Array[Byte]): String =
-    new String(decrypt(encryptedByteMessage), McElieceCryptosystem.Charset)
+  /**
+    * Decrypt cipher byte array with private key
+    *
+    * @param c cipher byte array
+    * @return message string
+    */
+  def decryptString(c: Array[Byte]): String = {
+    new String(decrypt(c), McElieceCryptosystem.Charset)
+  }
 
 }
 
@@ -176,14 +212,26 @@ object McElieceCryptosystem {
     val k: Int = n - m * t
   }
 
-  case class McElieceKeyPair(publicKey: BCMcEliecePublicKey, privateKey: BCMcEliecePrivateKey)
+  case class McEliecePublicKey(gPublic: GF2Matrix, t: Int, pLocal: Permutation)
+
+  case class McEliecePrivateKey(
+      sInv: GF2Matrix,
+      h: GF2Matrix,
+      pInv: Permutation,
+      field: GF2mField,
+      gp: PolynomialGF2mSmallM,
+      // below parameter is not mandatory, added for convenience
+      qInv: Array[PolynomialGF2mSmallM]
+   )
+
+  case class McElieceKeyPair(publicKey: McEliecePublicKey, privateKey: McEliecePrivateKey)
 
   case class VerboseOptions(
-                             keyPairGeneration: Boolean = false,
-                             cipherGeneration: Boolean = false,
-                             partialResults: Boolean = true,
-                             totalResults: Boolean = true,
-                             ramUsage: Boolean = false
-                           )
+      keyPairGeneration: Boolean = false,
+      cipherGeneration: Boolean = false,
+      partialResults: Boolean = true,
+      totalResults: Boolean = true,
+      ramUsage: Boolean = false
+  )
 
 }
