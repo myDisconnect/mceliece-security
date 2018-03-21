@@ -13,15 +13,17 @@ object Logging {
 
   def keyPairGenerationResults(
                                 goppaPoly: PolynomialGF2mSmallM,
-                                gMatrix: GF2Matrix,
-                                sMatrix: GF2Matrix,
-                                pPermutation: Permutation
+                                g: GF2Matrix,
+                                s: GF2Matrix,
+                                p: Permutation,
+                                gPublic: GF2Matrix
                               ): Unit = {
     Console.println(
       s"[KEY PAIR GENERATION] Selected irreducible binary Goppa code$goppaPoly\n" +
-        s"Private generator matrix G = \n$gMatrix" +
+        s"Private generator matrix G = \n$g" +
         //s"Possible G codewords:\n${GeneratorParityCheckMatrix.generateAllCodewords(gMatrix)}\n" +
-        s"Matrix S = \n${sMatrix}Permutation P = \n${PermutationUtils.toGF2Matrix(pPermutation)}"
+        s"Matrix S = \n${s}Permutation P = \n${PermutationUtils.toGF2Matrix(p)}\n" +
+        s"Public G = \n$gPublic"
     )
   }
 

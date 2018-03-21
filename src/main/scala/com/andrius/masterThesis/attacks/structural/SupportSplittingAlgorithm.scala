@@ -55,7 +55,7 @@ class SupportSplittingAlgorithm(publicKey: McEliecePublicKey, verbose: SSAVerbos
         iteration += 1
         val gMatrix = GeneratorMatrix.getGeneratorMatrix(field, goppaPoly, p)
         try {
-          /*permutationMap = SupportSplittingAlgorithm.findPermutation(
+          /*permutationMap = findPermutation(
             publicKeySignature,
             GeneratorMatrix.generateAllCodewords(gMatrix)
           )*/
@@ -124,11 +124,11 @@ object SupportSplittingAlgorithm {
     val signature = mutable.Map.empty[Seq[Int], Seq[String]]
 
     for (puncturePositions <- puncturePositions) {
-      val weightEnumPos = getPuncturedHammingWeight(codewords, puncturePositions)
+      val weightEnumPos = getHammingWeightDistribution(puncture(codewords, puncturePositions))
       // using HashCode for efficiency
-      val enum = weightEnumPos.hashCode.toString
+      //val enum = weightEnumPos.hashCode.toString
       // uncomment this To debug the received weight enumerator
-      //val enum = weightEnumPos.toSeq.sortBy(_._1).map(t => t._1 + "->" + t._2).mkString(",")
+      val enum = weightEnumPos.toSeq.sortBy(_._1).map(t => t._1 + "->" + t._2).mkString(",")
 
       if (!localPartitions.isDefinedAt(enum)) {
         localPartitions(enum) = ListBuffer.empty[Seq[Int]]
@@ -270,7 +270,7 @@ object SupportSplittingAlgorithm {
 
     if (signatureReceived.isEmpty) {
       throw new Exception("[Cannot find signatures] No signature received")
-    } else if (!SupportSplittingAlgorithm.isPermutationEquivalent(codewords, signatureReceived, codewordsToMatch, signatureToMatch)) {
+    } else if (!isPermutationEquivalent(codewords, signatureReceived, codewordsToMatch, signatureToMatch)) {
       throw new Exception("[Cannot find signatures] Not permutationally equivalent")
     }
     println(s"Signatures received(${signatureReceived.size}) with keys (${signatureReceived.keys}):\n$signatureReceived\n" +
@@ -304,6 +304,20 @@ object SupportSplittingAlgorithm {
   }
 
   /**
+    * Get puncture positions
+    *
+    * @param puncturePositions        already punctured positions
+    * @param uniqueDuplicatePositions duplicate position group
+    * @return puncture positions
+    */
+  def getPuncturePositions(puncturePositions: Seq[Int], uniqueDuplicatePositions: ListBuffer[Seq[Int]]): Seq[Int] = {
+    // first we try unique positions (singletons + not used)
+    val positionsPunctured = uniqueDuplicatePositions.flatten.distinct
+
+    puncturePositions.diff(positionsPunctured)
+  }
+
+  /**
     * Get Hamming weight distribution (NP-hard hard problem)
     * Note. It is possible to use the hull of weight enumerator,
     * but it is less efficient with n <= 1000 (@see N. Sendrier. The Support Splitting Algorithm)
@@ -325,7 +339,7 @@ object SupportSplittingAlgorithm {
   }
 
   /**
-    * Puncture codewords in given positions
+    * Puncture codewords in given positions. Ignores duplicates!
     *
     * @param codewords list of codeword vectors
     * @param positions list of positions to puncture codewords
@@ -338,56 +352,12 @@ object SupportSplittingAlgorithm {
       for (position <- positions) {
         Vector.setColumn(out, 0, position)
       }
-      puncturedCodewords += new GF2Vector(vector.getLength, out)
+      val newVector = new GF2Vector(vector.getLength, out)
+      if (!puncturedCodewords.contains(newVector)) {
+        puncturedCodewords += newVector
+      }
     }
     puncturedCodewords.toList
-  }
-
-  /**
-    * Get puncture positions
-    *
-    * @param puncturePositions        already punctured positions
-    * @param uniqueDuplicatePositions duplicate position group
-    * @return puncture positions
-    */
-  def getPuncturePositions(puncturePositions: Seq[Int], uniqueDuplicatePositions: ListBuffer[Seq[Int]]): Seq[Int] = {
-    // first we try unique positions (singletons + not used)
-    val positionsPunctured = uniqueDuplicatePositions.flatten.distinct
-    val uniquePositions = puncturePositions.diff(positionsPunctured)
-    // [Safeguard] We allow all positions to be punctured twice.
-    if (uniquePositions.isEmpty) {
-      val repeating = ListBuffer.empty[Int]
-      uniqueDuplicatePositions
-        .foreach(_.groupBy(identity).collect { case (x, ys) if ys.length == 2 => x }.foreach(repeating += _))
-      positionsPunctured.diff(repeating)
-    } else {
-      uniquePositions
-    }
-  }
-
-  /**
-    * Combined method for puncturing and finding weight enumerator for efficiency
-    *
-    * @param codewords list of codeword vectors
-    * @param positions list of positions to puncture codewords
-    * @return Hamming weight enumerator map
-    */
-  def getPuncturedHammingWeight(codewords: List[GF2Vector], positions: Seq[Int]): Map[Int, Int] = {
-    val weightDistribution = mutable.Map.empty[Int, Int]
-
-    for (vector <- codewords) {
-      val out = IntUtils.clone(vector.getVecArray)
-      for (position <- positions) {
-        Vector.setColumn(out, 0, position)
-      }
-      val hammingWeight = new GF2Vector(vector.getLength, out).getHammingWeight
-      if (weightDistribution.isDefinedAt(hammingWeight)) {
-        weightDistribution(hammingWeight) += 1
-      } else {
-        weightDistribution += (hammingWeight -> 1)
-      }
-    }
-    weightDistribution.toMap
   }
 
   /**
@@ -455,10 +425,10 @@ object SupportSplittingAlgorithm {
       puncturePosition <- positionsToPuncture.diff(puncturedPositions)
     } yield {
       println(s"Puncturing received: $puncturePosition")
-      puncturedSignatures += SupportSplittingAlgorithm.getPuncturedHammingWeight(
+      puncturedSignatures += getHammingWeightDistribution(puncture(
         codewords,
         puncturedPositions :+ puncturePosition
-      )
+      ))
     }
     println(s"puncturedSignatures: $puncturedSignatures")
     println(s"Matched ${signatureToMatch.filter(el => signature.values.toSeq.contains(el._2))}")
@@ -469,10 +439,10 @@ object SupportSplittingAlgorithm {
       while (matched && uniquePuncturePos.hasNext) {
         val puncturePosition = uniquePuncturePos.next
         println(s"Puncturing original position: $puncturePosition")
-        val matchedPosition = SupportSplittingAlgorithm.getPuncturedHammingWeight(
+        val matchedPosition = getHammingWeightDistribution(puncture(
           codewordsToMatch,
           puncturedPositions :+ puncturePosition
-        )
+        ))
         if (puncturedSignatures.contains(matchedPosition)) {
           puncturedSignatures -= matchedPosition
         } else {

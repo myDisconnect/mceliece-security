@@ -79,7 +79,7 @@ class McElieceCryptosystem(config: Configuration) {
     val gPub = matrixSandInverse(0).rightMultiply(gPrime).rightMultiply(p).asInstanceOf[GF2Matrix]
 
     if (config.verbose.keyPairGeneration) {
-      Logging.keyPairGenerationResults(gp, gPrime, matrixSandInverse(0), p1.rightMultiply(p))
+      Logging.keyPairGenerationResults(gp, gPrime, matrixSandInverse(0), p, gPub)
     }
     // generate public and private keys
     // we pass parity-check matrix to private key for syndrome decoding
