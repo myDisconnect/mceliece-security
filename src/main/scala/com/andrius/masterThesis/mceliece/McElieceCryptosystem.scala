@@ -4,14 +4,14 @@ import java.nio.charset.{Charset, StandardCharsets}
 import java.security._
 
 import com.andrius.masterThesis.mceliece.McElieceCryptosystem._
-import com.andrius.masterThesis.utils.{GeneratorParityCheckMatrix, Goppa, Logging, Vector}
+import com.andrius.masterThesis.utils.{Goppa, Logging, Vector}
 import org.bouncycastle.pqc.math.linearalgebra.{GF2Matrix, GF2Vector, GF2mField, GoppaCode, Permutation, PolynomialGF2mSmallM, PolynomialRingGF2, PolynomialRingGF2m}
 
 /**
   * McEliece public key cryptosystem implementation
   *
   * Notes on current implementation used:
-  * - The systematic generator matrix is recovered from parity-check matrix via Permutation
+  * - The systematic generator matrix is recovered from parity-check H matrix via permutation
   *
   * @see R.J. McEliece. A public-key cryptosystem based on algebraic. (https://tmo.jpl.nasa.gov/progress_report2/42-44/44N.PDF)
   * @see Great introductory slides about McEliece: http://www-math.ucdenver.edu/~wcherowi/courses/m5410/mcleice.pdf
@@ -39,9 +39,7 @@ class McElieceCryptosystem(config: Configuration) {
   // Generate original McEliece cryptosystem public and private keys
   private val generatedKeys = {
     // finite field GF(2^m)
-    // @todo remove this
-    val fieldPoly = PolynomialRingGF2.getIrreduciblePolynomial(m)
-    //val fieldPoly = Goppa.getIrreduciblePolynomial(m)
+    val fieldPoly = Goppa.getIrreduciblePolynomial(m, sr)
     val field = new GF2mField(m, fieldPoly)
 
     // irreducible Goppa polynomial
@@ -57,8 +55,7 @@ class McElieceCryptosystem(config: Configuration) {
     // get (k x n) generator matrix from parity check matrix
     //val g = GeneratorParityCheckMatrix.findNullSpace(h)
 
-    // canonical parity-check matrix is not always can be converted to systematic, so we permute it
-    // @see https://math.stackexchange.com/a/348046/538670
+    // canonical parity-check matrix is not always can be converted to systematic, so it is permuted to make it orthogonal
     val mmp = GoppaCode.computeSystematicForm(h, sr)
     val shortH = mmp.getSecondMatrix
     val p1 = mmp.getPermutation

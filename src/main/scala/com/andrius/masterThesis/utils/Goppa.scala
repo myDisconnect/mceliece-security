@@ -1,5 +1,7 @@
 package com.andrius.masterThesis.utils
 
+import java.security.SecureRandom
+
 import org.bouncycastle.pqc.math.linearalgebra.PolynomialRingGF2
 
 import scala.collection.mutable
@@ -15,7 +17,7 @@ object Goppa {
     * @param deg polynomial degree
     * @return irreducible polynomial p
     */
-  def getIrreduciblePolynomial(deg: Int): Int = {
+  def getIrreduciblePolynomial(deg: Int, sr: SecureRandom): Int = {
     require(deg > 0 && deg < 32, "Polynomial degree must be deg must be between 0 < deg < 32")
     if (deg == 0) {
       1
@@ -27,7 +29,7 @@ object Goppa {
       val failedTriesDictionary = mutable.HashSet.empty[Int]
 
       while (irrPoly == 0 && failedTriesDictionary.size != subFieldTries) {
-        val i = util.Random.nextInt(subFieldTries) * 2
+        val i = sr.nextInt(subFieldTries) * 2
         if (!failedTriesDictionary.contains(i)) {
           failedTriesDictionary += i
           val degTry = a + i

@@ -1,7 +1,5 @@
 package com.andrius.masterThesis.utils
 
-import java.security.SecureRandom
-
 import org.bouncycastle.pqc.math.linearalgebra._
 
 import scala.collection.immutable.Range
@@ -11,23 +9,21 @@ import scala.util.control.Breaks.{break, breakable}
 /**
   * Utilities for generator and parity-check matrices over finite field GF(2)
   */
-object GeneratorParityCheckMatrix {
+object GeneratorMatrix {
 
   /**
-    * Get generator matrix in systematic (standard) form for irreductible Goppa polynomial over finite field GF(2)
+    * Get generator matrix for irreductible Goppa polynomial over finite field GF(2)
     *
-    * @param field     primitive Goppa finite field GF(2^m)
-    * @param goppaPoly irreducible Goppa polynomial selected
-    * @param sr        source of randomness
+    * @param field            primitive Goppa finite field GF(2^m)
+    * @param goppaPoly        irreducible Goppa polynomial selected
+    * @param localPermutation permutation used to get systematic generator matrix
     * @return generator matrix
     */
-  def getGeneratorMatrix(field: GF2mField, goppaPoly: PolynomialGF2mSmallM, localPermutation: Permutation, sr: SecureRandom): GF2Matrix = {
+  def getGeneratorMatrix(field: GF2mField, goppaPoly: PolynomialGF2mSmallM, localPermutation: Permutation): GF2Matrix = {
     // generate canonical check matrix from Goppa polly
     val h = GoppaCode.createCanonicalCheckMatrix(field, goppaPoly)
 
-    println(s"Goppa poly:\n$goppaPoly\ngetGeneratorMatrix\n${GeneratorParityCheckMatrix.findNullSpace(h).rightMultiply(localPermutation)}")
-    // convert it to generator matrix
-    GeneratorParityCheckMatrix.findNullSpace(h).rightMultiply(localPermutation).asInstanceOf[GF2Matrix]
+    GeneratorMatrix.findNullSpace(h).rightMultiply(localPermutation).asInstanceOf[GF2Matrix]
   }
 
   /**
@@ -54,7 +50,7 @@ object GeneratorParityCheckMatrix {
   }
 
   /**
-    * Converts any parity-check matrix to it's generator matrix
+    * Converts any parity-check matrix to it's generator matrix (non-systematic)
     *
     * @see https://en.wikipedia.org/wiki/Kernel_(linear_algebra)#Basis
     * @param h parity-check matrix
@@ -65,6 +61,7 @@ object GeneratorParityCheckMatrix {
 
     val m = h.getNumRows
     val n = h.getNumColumns
+
     // add identity matrix to H
     val temp = Matrix.joinVertically(h, Matrix.identity(n, n))
     val tempArr = temp.getIntArray
@@ -86,9 +83,8 @@ object GeneratorParityCheckMatrix {
               tempArr,
               k,
               j,
-              Matrix.getMatrixArrayValueInt(tempArr, k, j) + Matrix.getMatrixArrayValueInt(tempArr, k, i) % 2
+              Matrix.getMatrixArrayValueInt(tempArr, k, j) ^ Matrix.getMatrixArrayValueInt(tempArr, k, i)
             )
-            //temp(k, j) = ((unsigned int) temp (k, j) + (unsigned int) temp(k, i)) % 2;
           }
         }
       }

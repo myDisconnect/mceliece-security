@@ -19,14 +19,15 @@ object Logging {
                               ): Unit = {
     Console.println(
       s"[KEY PAIR GENERATION] Selected irreducible binary Goppa code$goppaPoly\n" +
-        s"Private generator matrix G = \n${gMatrix}Possible codewords:\n${GeneratorParityCheckMatrix.generateAllCodewords(gMatrix)}\n" +
-        s"Matrix S = \n${sMatrix}Permutation P = $pPermutation"
+        s"Private generator matrix G = \n$gMatrix" +
+        //s"Possible G codewords:\n${GeneratorParityCheckMatrix.generateAllCodewords(gMatrix)}\n" +
+        s"Matrix S = \n${sMatrix}Permutation P = \n${PermutationUtils.toGF2Matrix(pPermutation)}"
     )
   }
 
   def cipherGenerationResults(m: GF2Vector, mG: GF2Vector, e: GF2Vector): Unit = {
     Console.println(
-      s"[CIPHER GENERATION] Message vector m = $m, m * G' = $mG, random error vector e = $e, " +
+      s"[CIPHER GENERATION] Message vector m = $m, random error vector e = $e, m * G' = $mG, " +
         s"cipher c = ${mG.add(e).asInstanceOf[GF2Vector]}"
     )
   }
@@ -66,7 +67,7 @@ object Logging {
   def ssaGeneratorMatrixGenerationResults(goppaPoly: PolynomialGF2mSmallM, gMatrix: GF2Matrix, iteration: Int): Unit = {
     Console.println(
       s"[SSA G GENERATION] Try number #$iteration. Selected irreducible binary Goppa code$goppaPoly\n" +
-        s"Private generator matrix G = \n${gMatrix}Possible codewords:\n${GeneratorParityCheckMatrix.generateAllCodewords(gMatrix)}\n"
+        s"Private generator matrix G = \n${gMatrix}Possible codewords:\n${GeneratorMatrix.generateAllCodewords(gMatrix)}\n"
     )
   }
 
@@ -75,8 +76,8 @@ object Logging {
       s"[SSA RESULT GENERATED] Number of tries required $iteration. Public generator matrix G' = \n$publicG" +
         s"Private generator matrix G = \n${generatedG}Permutation map:\n$permutationMap\n" +
         // @TODO DELETE THIS
-        s"Permuted public G codewords\n${SupportSplittingAlgorithm.swapByPermutationMap(GeneratorParityCheckMatrix.generateAllCodewords(generatedG), permutationMap)}\n" +
-        s"generatedG keywords = ${GeneratorParityCheckMatrix.generateAllCodewords(publicG)}"
+        s"Permuted public G codewords\n${SupportSplittingAlgorithm.swapByPermutationMap(GeneratorMatrix.generateAllCodewords(generatedG), permutationMap)}\n" +
+        s"generatedG keywords = ${GeneratorMatrix.generateAllCodewords(publicG)}"
     )
   }
 

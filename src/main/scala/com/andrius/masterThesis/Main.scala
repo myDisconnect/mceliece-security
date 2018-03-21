@@ -378,7 +378,7 @@ object Main {
       for (_ <- 0 until messageCount) {
         val start = System.currentTimeMillis
 
-        ssa.attack
+        //ssa.attack
         val end = System.currentTimeMillis - start
         if (configuration.verbose.partialResults) {
           timeResultsKeyPair += end
