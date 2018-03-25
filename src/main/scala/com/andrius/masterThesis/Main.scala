@@ -21,11 +21,6 @@ object Main {
     val (keyPairCount, messageCount) = UserInputProcessor.getAttackOptions
     val attackId = UserInputProcessor.getAttackId
 
-    Console.println(
-      s"Attack(s) will be executed on McEliece cryptosystem with (n, k, t) = (${configuration.n}, " +
-        s"${configuration.k}, ${configuration.t}) security parameters (m = ${configuration.m})."
-    )
-
     attackId match {
       case Attack.Id.GISD =>
         generalizedInformationSetDecoding(configuration, keyPairCount, messageCount)

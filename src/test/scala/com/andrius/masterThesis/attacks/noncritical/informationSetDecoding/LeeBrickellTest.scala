@@ -7,9 +7,7 @@ import org.scalatest.FlatSpec
 
 class LeeBrickellTest extends FlatSpec {
 
-  behavior of "Lee-Brickell (GISD) attack"
-
-  it should "attack and never fail" in {
+  "attack" should "always be successful" in {
     val configuration = Configuration(m = 5, t = 2)
 
     for (_ <- 0 until 5) {

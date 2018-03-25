@@ -36,6 +36,10 @@ class McElieceCryptosystem(config: Configuration) {
   // Linear code dimension
   val k: Int = config.k
 
+  if (config.verbose.receivedSecurityParameters) {
+    Logging.receivedSecurityParametersResults(n,k,t,m)
+  }
+
   // Generate original McEliece cryptosystem public and private keys
   private val generatedKeys = {
     // finite field GF(2^m)
@@ -227,6 +231,7 @@ object McElieceCryptosystem {
   case class McElieceKeyPair(publicKey: McEliecePublicKey, privateKey: McEliecePrivateKey)
 
   case class VerboseOptions(
+      receivedSecurityParameters: Boolean = false,
       keyPairGeneration: Boolean = false,
       cipherGeneration: Boolean = false,
       partialResults: Boolean = true,

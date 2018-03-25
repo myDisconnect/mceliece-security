@@ -4,7 +4,7 @@ import java.security.SecureRandom
 
 import com.andrius.masterThesis.mceliece.McElieceCryptosystem
 import com.andrius.masterThesis.mceliece.McElieceCryptosystem._
-import com.andrius.masterThesis.utils.{GeneratorMatrix, Matrix, Vector}
+import com.andrius.masterThesis.utils.{GeneratorMatrix, Matrix, PermutationUtils, Vector}
 import org.bouncycastle.pqc.math.linearalgebra.{GF2Matrix, GF2mField, GoppaCode, Permutation, PolynomialGF2mSmallM, PolynomialRingGF2, PolynomialRingGF2m}
 import org.scalatest.FlatSpec
 
@@ -34,6 +34,9 @@ class SupportSplittingAlgorithmTest extends FlatSpec {
     val expectedResult = Map(2 -> 3, 1 -> 0, 3 -> 1, 0 -> 2)
     assert(permutation.equals(expectedResult), "SSA algorithm implemented incorrectly")
     assert(SupportSplittingAlgorithm.getRefinementCount(c1Signature) == 0, "SSA algorithm implemented incorrectly")
+
+    val permuted = SupportSplittingAlgorithm.swapByPermutationMap(c2Codewords, permutation)
+    assert(permuted.forall(c1Codewords.contains), "SSA algorithm implemented incorrectly")
   }
 
   it should "find permutation on equivalent codes with exactly one refinement" in {
@@ -59,6 +62,9 @@ class SupportSplittingAlgorithmTest extends FlatSpec {
     val expectedResult = Map(2 -> 0, 4 -> 2, 1 -> 4, 3 -> 3, 0 -> 1)
     assert(permutation.equals(expectedResult), "SSA algorithm implemented incorrectly")
     assert(SupportSplittingAlgorithm.getRefinementCount(c1Signature) == 1, "SSA algorithm implemented incorrectly")
+
+    val permuted = SupportSplittingAlgorithm.swapByPermutationMap(c2Codewords, permutation)
+    assert(permuted.forall(c1Codewords.contains), "SSA algorithm implemented incorrectly")
   }
 
   it should "find permutation on exactly the same code with one refinement" in {
@@ -85,6 +91,9 @@ class SupportSplittingAlgorithmTest extends FlatSpec {
     )
     assert(permutation.equals(expectedResult), "SSA algorithm implemented incorrectly")
     assert(SupportSplittingAlgorithm.getRefinementCount(gSignature) == 1, "SSA algorithm implemented incorrectly")
+
+    val permuted = SupportSplittingAlgorithm.swapByPermutationMap(gCodewords, permutation)
+    assert(permuted.forall(gCodewords.contains), "SSA algorithm implemented incorrectly")
   }
 
   it should "not find permutation on not equivalent codes" in {

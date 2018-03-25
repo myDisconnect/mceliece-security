@@ -3,6 +3,7 @@ package com.andrius.masterThesis.utils
 import org.bouncycastle.crypto.InvalidCipherTextException
 import org.bouncycastle.pqc.math.linearalgebra.{GF2Vector, IntUtils}
 
+import scala.collection.mutable.ListBuffer
 import scala.util.Random
 
 /**
@@ -48,8 +49,8 @@ object Vector {
     * Generate a random message vector of given length
     * Contains at least one "1"
     *
-    * @param k length
-    * @return
+    * @param k length of vector to create
+    * @return random k-length vector
     */
   def generateMessageVector(k: Int): GF2Vector = {
     val maxPlainTextSize = (k - 1) >> 3
@@ -109,11 +110,15 @@ object Vector {
     * @return
     */
   def concat(left: GF2Vector, right: GF2Vector): GF2Vector = {
-    val out = IntUtils.clone(left.getVecArray)
-    for (i <- 0 until right.getLength) {
-      Vector.setColumn(out, Vector.getColumn(right.getVecArray, i), i + left.getLength)
+    val length = left.getLength + right.getLength
+    val out = Array.fill[Int](length / 32 + 1)(0)
+    for (i <- 0 until left.getLength) {
+      Vector.setColumn(out, Vector.getColumn(left.getVecArray, i), i)
     }
-    new GF2Vector(left.getLength + right.getLength, out)
+    for (i <- 0 until right.getLength) {
+      Vector.setColumn(out, Vector.getColumn(right.getVecArray, i), left.getLength + i)
+    }
+    new GF2Vector(length, out)
   }
 
   /**

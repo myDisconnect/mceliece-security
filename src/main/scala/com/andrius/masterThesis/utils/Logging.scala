@@ -11,6 +11,12 @@ import scala.collection.mutable.ListBuffer
   */
 object Logging {
 
+  def receivedSecurityParametersResults(n: Int, k: Int, t: Int, m: Int): Unit = {
+    Console.println(
+      s"[RECEIVED SECURITY PARAMETERS] m = $m, t = $t, which is equivalent to (n, k, t) = ($n, $k, $t)"
+    )
+  }
+
   def keyPairGenerationResults(
                                 goppaPoly: PolynomialGF2mSmallM,
                                 g: GF2Matrix,

@@ -8,6 +8,7 @@ import org.bouncycastle.pqc.math.linearalgebra.{GF2Matrix, GF2Vector}
 /**
   * Known partial plaintext attack
   *
+  * @see P. L. Cayrel, C. T. Gueye, O. Ndiaye, R. Niebuhr. Critical attacks in code-based cryptography (https://www.researchgate.net/profile/Cheikh_Thiecoumba_Gueye/publication/281657709_Critical_attacks_in_code-based_cryptography/links/592c30c1aca27295a81024ce/Critical-attacks-in-code-based-cryptography.pdf)
   * @see A. Canteaut, N, Sendrier. Cryptanalysis of the Original McEliece Cryptosystem (https://link.springer.com/content/pdf/10.1007/3-540-49649-1_16.pdf)
   * @see K. Kobara, H. Imai. Semantically secure McEliece public-key cryptosystems-conversions for McEliece PKC (https://link.springer.com/content/pdf/10.1007/3-540-44586-2_2.pdf)
   * @param publicKey McEliece public key

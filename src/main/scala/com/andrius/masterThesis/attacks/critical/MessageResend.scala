@@ -46,7 +46,7 @@ class MessageResend(publicKey: McEliecePublicKey) {
     while (!found) {
       // Let's take a random sample from most likely error-free vectors
       val colPositions = Math.sample(collisionFreePositionList, k)
-      // Order is not important, because columns are linearly independent
+      // Order is not important, because we are looking for linearly independent columns
       val iSet = colPositions.toSet
       if (!failedTriesDictionary.contains(iSet)) {
         failedTriesDictionary += iSet
