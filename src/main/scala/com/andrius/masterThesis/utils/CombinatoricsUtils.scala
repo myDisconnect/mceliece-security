@@ -5,7 +5,7 @@ import scala.annotation.tailrec
 /**
   * Combinatorics utilities
   */
-object Combinatorics {
+object CombinatoricsUtils {
 
   /**
     * Possible k-combination of a set with n elements
@@ -25,6 +25,7 @@ object Combinatorics {
     * @return
     */
   def factorial(n: BigInt): BigInt = {
+    require(n >= 0, s"Negative factorial degree $n received")
     @tailrec
     def factorialAccumulator(acc: BigInt, n: BigInt): BigInt = {
       if (n == 0) acc

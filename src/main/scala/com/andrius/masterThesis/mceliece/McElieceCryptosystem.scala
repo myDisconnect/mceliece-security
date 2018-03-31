@@ -4,7 +4,7 @@ import java.nio.charset.{Charset, StandardCharsets}
 import java.security._
 
 import com.andrius.masterThesis.mceliece.McElieceCryptosystem._
-import com.andrius.masterThesis.utils.{Goppa, Logging, Vector}
+import com.andrius.masterThesis.utils.{GoppaUtils, LoggingUtils, VectorUtils}
 import org.bouncycastle.pqc.math.linearalgebra.{GF2Matrix, GF2Vector, GF2mField, GoppaCode, Permutation, PolynomialGF2mSmallM, PolynomialRingGF2, PolynomialRingGF2m}
 
 /**
@@ -37,13 +37,13 @@ class McElieceCryptosystem(config: Configuration) {
   val k: Int = config.k
 
   if (config.verbose.receivedSecurityParameters) {
-    Logging.receivedSecurityParametersResults(n,k,t,m)
+    LoggingUtils.receivedSecurityParametersResults(n,k,t,m)
   }
 
   // Generate original McEliece cryptosystem public and private keys
   private val generatedKeys = {
     // finite field GF(2^m)
-    val fieldPoly = Goppa.getIrreduciblePolynomial(m, sr)
+    val fieldPoly = GoppaUtils.getIrreduciblePolynomial(m, sr)
     val field = new GF2mField(m, fieldPoly)
 
     // irreducible Goppa polynomial
@@ -83,7 +83,7 @@ class McElieceCryptosystem(config: Configuration) {
     val gPub = matrixSandInverse(0).rightMultiply(gPrime).rightMultiply(p).asInstanceOf[GF2Matrix]
 
     if (config.verbose.keyPairGeneration) {
-      Logging.keyPairGenerationResults(gp, gPrime, matrixSandInverse(0), p, gPub)
+      LoggingUtils.keyPairGenerationResults(gp, gPrime, matrixSandInverse(0), p, gPub)
     }
     // generate public and private keys
     // we pass parity-check matrix to private key for syndrome decoding
@@ -110,7 +110,7 @@ class McElieceCryptosystem(config: Configuration) {
     val mG = publicKey.gPublic.leftMultiply(m)
 
     if (config.verbose.cipherGeneration) {
-      Logging.cipherGenerationResults(m, mG.asInstanceOf[GF2Vector], e)
+      LoggingUtils.cipherGenerationResults(m, mG.asInstanceOf[GF2Vector], e)
     }
     // compute c = m * G' + e
     mG.add(e).asInstanceOf[GF2Vector]
@@ -133,7 +133,7 @@ class McElieceCryptosystem(config: Configuration) {
     * @return cipher byte array
     */
   def encrypt(m: Array[Byte]): Array[Byte] = {
-    encrypt(Vector.computeMessageRepresentative(k, m))
+    encrypt(VectorUtils.computeMessageRepresentative(k, m))
   }
 
   /**
@@ -181,7 +181,7 @@ class McElieceCryptosystem(config: Configuration) {
   def decrypt(c: GF2Vector): Array[Byte] = {
     val mVec = decryptVector(c)
     // compute and return plaintext
-    Vector.computeMessage(mVec)
+    VectorUtils.computeMessage(mVec)
   }
 
   /**

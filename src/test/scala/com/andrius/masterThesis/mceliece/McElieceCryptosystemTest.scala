@@ -1,7 +1,7 @@
 package com.andrius.masterThesis.mceliece
 
 import com.andrius.masterThesis.mceliece.McElieceCryptosystem.Configuration
-import com.andrius.masterThesis.utils.{GeneratorMatrix, Vector}
+import com.andrius.masterThesis.utils.{GeneratorMatrixUtils, VectorUtils}
 import org.scalatest.FlatSpec
 
 class McElieceCryptosystemTest extends FlatSpec {
@@ -36,7 +36,7 @@ class McElieceCryptosystemTest extends FlatSpec {
   it should "encrypt and decrypt vector" in {
     for (_ <- 0 until iterations) {
       val mcEliecePKC = new McElieceCryptosystem(configuration)
-      val msg = Vector.generateMessageVector(mcEliecePKC.k)
+      val msg = VectorUtils.generateMessageVector(mcEliecePKC.k)
 
       assert(
         mcEliecePKC.decryptVector(mcEliecePKC.encryptVector(msg)).equals(msg),

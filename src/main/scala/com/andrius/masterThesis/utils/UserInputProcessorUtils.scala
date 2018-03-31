@@ -5,7 +5,10 @@ import com.andrius.masterThesis.mceliece.McElieceCryptosystem.{Configuration, Ve
 
 import scala.io.StdIn
 
-object UserInputProcessor {
+/**
+  * Utilities for user input processing
+  */
+object UserInputProcessorUtils {
 
   val consoleBooleanAnswer = Map(
     YesNoAnswer.Yes -> true,
@@ -37,12 +40,15 @@ object UserInputProcessor {
   }
 
   def getVerboseOptions: VerboseOptions = {
+    val defaultSecurityParameters = YesNoAnswer.No
     val defaultKeyPairGeneration  = YesNoAnswer.No
     val defaultCipherGeneration   = YesNoAnswer.No
     val defaultPartialResults     = YesNoAnswer.Yes
     val defaultTotalResults       = YesNoAnswer.Yes
     val defaultRamUsageResults    = YesNoAnswer.No
 
+    Console.println(s"${printDoYouWantToLog("received security parameters", defaultSecurityParameters)}")
+    val securityParameters = consoleBooleanAnswer(getStringOrDefault(StdIn.readLine(), defaultSecurityParameters))
     Console.println(s"${printDoYouWantToLog("public/private keys generation", defaultKeyPairGeneration)}")
     val keyPairGeneration = consoleBooleanAnswer(getStringOrDefault(StdIn.readLine(), defaultKeyPairGeneration))
     Console.println(s"${printDoYouWantToLog("cipher keys generation", defaultCipherGeneration)}")
@@ -54,7 +60,7 @@ object UserInputProcessor {
     Console.println(s"${printDoYouWantToLog("RAM usage", defaultRamUsageResults)}")
     val ramUsageResults = consoleBooleanAnswer(getStringOrDefault(StdIn.readLine(), defaultRamUsageResults))
 
-    VerboseOptions(keyPairGeneration, cipherGeneration, partialResults, totalResults, ramUsageResults)
+    VerboseOptions(securityParameters, keyPairGeneration, cipherGeneration, partialResults, totalResults, ramUsageResults)
   }
 
   def getAttackOptions: (Int, Int) = {
@@ -65,6 +71,14 @@ object UserInputProcessor {
     Console.println(s"Enter the number of messages to encrypt with single McEliece key pair ${printDefault(defaultMessageCount)}")
     val messageCount = getIntOrDefault(StdIn.readLine(), defaultMessageCount)
     (keyPairCount, messageCount)
+  }
+
+  def getRelatedMessageAlgorithm: Int = {
+    val defaultAlgorithm = Attack.RelatedMessageAlgorithm.IndependentLinearColumns
+    Console.println(s"Enter the number of algorithm to use ${printDefault(defaultAlgorithm)}\n" +
+      s"${Attack.RelatedMessageAlgorithm.ErrorVectorSearch} - Error Vector search based\n" +
+      s"${Attack.RelatedMessageAlgorithm.IndependentLinearColumns} - Independent linear columns search based")
+    getIntOrDefault(StdIn.readLine(), defaultAlgorithm)
   }
 
   def getKnownPartial(messageLength: Int): Int = {

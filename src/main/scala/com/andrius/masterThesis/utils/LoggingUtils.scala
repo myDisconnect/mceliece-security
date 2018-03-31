@@ -9,7 +9,7 @@ import scala.collection.mutable.ListBuffer
 /**
   * Logging utilities
   */
-object Logging {
+object LoggingUtils {
 
   def receivedSecurityParametersResults(n: Int, k: Int, t: Int, m: Int): Unit = {
     Console.println(
@@ -48,8 +48,9 @@ object Logging {
                           ): Unit =
     Console.println(
       s"[ATTACK PARTIAL RESULTS] Average ${Attack.map.filter(attack => attackIds.contains(attack._1)).map(_._2).mkString(" + ")} attack " +
-        s"time on single key pair (from $messageCount samples)" + extra +
-        s": ${Math.average(timeResultsKeyPair)} ms. Min: ${timeResultsKeyPair.min}. Max: ${timeResultsKeyPair.max}."
+        s"time on single key pair (from $messageCount samples)" +
+        s": ${MathUtils.average(timeResultsKeyPair)} ms. Min: ${timeResultsKeyPair.min} ms. Max: ${timeResultsKeyPair.max} ms. " +
+        extra
     )
 
   def totalResults(
@@ -60,8 +61,10 @@ object Logging {
                     extra: String = ""
                   ): Unit =
     Console.println(s"[ATTACK TOTAL RESULTS] Average ${Attack.map.filter(attack => attackIds.contains(attack._1)).map(_._2).mkString(" + ")} attack " +
-      s"time (from ${keyPairCount * messageCount} samples)" + extra +
-      s": ${Math.average(timeResultsTotal)} ms. Min: ${timeResultsTotal.min}. Max: ${timeResultsTotal.max}.")
+      s"time (from ${keyPairCount * messageCount} samples)" +
+      s": ${MathUtils.average(timeResultsTotal)} ms. Min: ${timeResultsTotal.min} ms. Max: ${timeResultsTotal.max} ms. " +
+      extra
+    )
 
   def ramUsageResults(): Unit = {
     val mb = 1024*1024
@@ -75,7 +78,7 @@ object Logging {
   def ssaGeneratorMatrixGenerationResults(goppaPoly: PolynomialGF2mSmallM, gMatrix: GF2Matrix, iteration: Int): Unit = {
     Console.println(
       s"[SSA G GENERATION] Try number #$iteration. Selected irreducible binary Goppa code$goppaPoly\n" +
-        s"Private generator matrix G = \n${gMatrix}Possible codewords:\n${GeneratorMatrix.generateAllCodewords(gMatrix)}\n"
+        s"Private generator matrix G = \n${gMatrix}Possible codewords:\n${GeneratorMatrixUtils.generateAllCodewords(gMatrix)}\n"
     )
   }
 
@@ -84,8 +87,8 @@ object Logging {
       s"[SSA RESULT GENERATED] Number of tries required $iteration. Public generator matrix G' = \n$publicG" +
         s"Private generator matrix G = \n${generatedG}Permutation map:\n$permutationMap\n" +
         // @TODO DELETE THIS
-        s"Permuted public G codewords\n${SupportSplittingAlgorithm.swapByPermutationMap(GeneratorMatrix.generateAllCodewords(generatedG), permutationMap)}\n" +
-        s"generatedG keywords = ${GeneratorMatrix.generateAllCodewords(publicG)}"
+        s"Permuted public G codewords\n${SupportSplittingAlgorithm.swapByPermutationMap(GeneratorMatrixUtils.generateAllCodewords(generatedG), permutationMap)}\n" +
+        s"generatedG keywords = ${GeneratorMatrixUtils.generateAllCodewords(publicG)}"
     )
   }
 

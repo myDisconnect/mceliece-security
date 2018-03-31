@@ -20,4 +20,16 @@ object ArrayUtils {
     out
   }
 
+  /**
+    * Clones the provided array
+    *
+    * @param in array to clone
+    * @return a new clone of the provided array
+    */
+  def cloneArray(in: Array[Int]): Array[Int] = {
+    val out = Array.ofDim[Int](in.length)
+    Array.copy(in, 0, out, 0, in.length)
+    out
+  }
+
 }

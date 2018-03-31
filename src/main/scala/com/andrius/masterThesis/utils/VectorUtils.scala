@@ -9,7 +9,7 @@ import scala.util.Random
 /**
   * Utilities for vectors over finite field GF(2)
   */
-object Vector {
+object VectorUtils {
 
   /**
     * Create GF2Vector from sequence of [0,1]
@@ -36,13 +36,29 @@ object Vector {
     * @param columns columns to extract from input vector
     * @return
     */
-  def createGF2VectorFromColumns(in: GF2Vector, columns: List[Int]): GF2Vector = {
+  def createGF2VectorFromColumns(in: GF2Vector, columns: Seq[Int]): GF2Vector = {
     val out = Array.fill((columns.length - 1) / 32 + 1)(0)
     val vector = in.getVecArray
     for ((indexToTake, indexToSet) <- columns.zipWithIndex) {
-      Vector.setColumn(out, Vector.getColumn(vector, indexToTake), indexToSet)
+      VectorUtils.setColumn(out, VectorUtils.getColumn(vector, indexToTake), indexToSet)
     }
     new GF2Vector(columns.length, out)
+  }
+
+  /**
+    * Creates a new vector with specified columns substracted
+    *
+    * @param in      input vector
+    * @param columns columns to extract from input vector
+    * @return
+    */
+  def subtractColumnPositions(in: GF2Vector, columns: Seq[Int]): GF2Vector = {
+    val inArray = in.getVecArray
+    val out  = ArrayUtils.cloneArray(inArray)
+    for (column <- columns) {
+      VectorUtils.setColumn(out, VectorUtils.getColumn(inArray, column) ^ 1, column)
+    }
+    new GF2Vector(in.getLength, out)
   }
 
   /**
@@ -113,10 +129,10 @@ object Vector {
     val length = left.getLength + right.getLength
     val out = Array.fill[Int](length / 32 + 1)(0)
     for (i <- 0 until left.getLength) {
-      Vector.setColumn(out, Vector.getColumn(left.getVecArray, i), i)
+      VectorUtils.setColumn(out, VectorUtils.getColumn(left.getVecArray, i), i)
     }
     for (i <- 0 until right.getLength) {
-      Vector.setColumn(out, Vector.getColumn(right.getVecArray, i), left.getLength + i)
+      VectorUtils.setColumn(out, VectorUtils.getColumn(right.getVecArray, i), left.getLength + i)
     }
     new GF2Vector(length, out)
   }

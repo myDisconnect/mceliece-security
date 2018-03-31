@@ -2,7 +2,7 @@ package com.andrius.masterThesis.attacks.critical
 
 import com.andrius.masterThesis.attacks.critical.KnownPartialPlaintext.ReducedSecurityComplexity
 import com.andrius.masterThesis.mceliece.McElieceCryptosystem.McEliecePublicKey
-import com.andrius.masterThesis.utils.Matrix
+import com.andrius.masterThesis.utils.MatrixUtils
 import org.bouncycastle.pqc.math.linearalgebra.{GF2Matrix, GF2Vector}
 
 /**
@@ -32,8 +32,8 @@ class KnownPartialPlaintext(publicKey: McEliecePublicKey) {
     val kRight = knownRight.getLength
     val kLeft = k - kRight
 
-    val gRight = Matrix.createGF2MatrixFromRows(g, Range(kLeft, k).toList)
-    val gLeft = Matrix.createGF2MatrixFromRows(g, Range(0, kLeft).toList)
+    val gRight = MatrixUtils.createGF2MatrixFromRows(g, Range(kLeft, k).toList)
+    val gLeft = MatrixUtils.createGF2MatrixFromRows(g, Range(0, kLeft).toList)
 
     val cNew = c.add(gRight.leftMultiply(knownRight)).asInstanceOf[GF2Vector]
     val pubKeyNew = McEliecePublicKey(gLeft, t, publicKey.pLocal)

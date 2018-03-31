@@ -9,7 +9,7 @@ import scala.collection.mutable
 /**
   * Utilities for binary irreductible Goppa codes
   */
-object Goppa {
+object GoppaUtils {
 
   /**
     * Creates irreducible polynomial with degree d

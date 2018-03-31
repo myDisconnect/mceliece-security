@@ -2,7 +2,7 @@ package com.andrius.masterThesis.attacks.noncritical.informationSetDecoding
 
 import com.andrius.masterThesis.mceliece.McElieceCryptosystem
 import com.andrius.masterThesis.mceliece.McElieceCryptosystem.Configuration
-import com.andrius.masterThesis.utils.Vector
+import com.andrius.masterThesis.utils.VectorUtils
 import org.scalatest.FlatSpec
 
 class LeeBrickellTest extends FlatSpec {
@@ -15,7 +15,7 @@ class LeeBrickellTest extends FlatSpec {
       val leeBrickell = new LeeBrickell(mcEliecePKC.publicKey)
       for (_ <- 0 until 100) {
 
-        val msg = Vector.generateMessageVector(configuration.k)
+        val msg = VectorUtils.generateMessageVector(configuration.k)
         val cipher = mcEliecePKC.encryptVector(msg)
         assert(leeBrickell.attack(cipher).equals(msg), "Algorithm implemented incorrectly")
       }

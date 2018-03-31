@@ -8,7 +8,7 @@ import scala.collection.mutable.ListBuffer
 /**
   * Utilities for matrices over finite field GF(2)
   */
-object Matrix {
+object MatrixUtils {
 
   /**
     * Create GF2Matrix from two dimensional sequence of [0,1]
@@ -45,7 +45,7 @@ object Matrix {
     val matrix = in.getIntArray
 
     for ((colToTake, colToSet) <- columns.zipWithIndex) {
-      Matrix.setColumn(out, Matrix.getColumn(matrix, colToTake), colToSet)
+      MatrixUtils.setColumn(out, MatrixUtils.getColumn(matrix, colToTake), colToSet)
     }
 
     new GF2Matrix(columns.length, out)
@@ -197,6 +197,33 @@ object Matrix {
     System.arraycopy(ArrayUtils.cloneArray(m2.getIntArray), 0, out, m1.getIntArray.length, m2.getIntArray.length)
 
     new GF2Matrix(m1.getNumColumns, out)
+  }
+
+  /**
+    * Creates new matrix with appended vector as a last column
+    *
+    * @param a matrix
+    * @param b vector
+    * @return matrix
+    */
+  def appendToMatrixVectorColumn(a: GF2Matrix, b: GF2Vector): GF2Matrix = {
+    require(a.getNumRows == b.getLength)
+    val m = Array.ofDim[Int](a.getNumRows, a.getNumColumns / 32 + 1)
+    val aArray = a.getIntArray
+    val bArray = b.getVecArray
+
+    for {
+      i <- aArray.indices
+      j <- aArray(i).indices
+    } m(i)(j) = aArray(i)(j)
+
+    val positionsToAdd = Array.ofDim[Int](b.getLength)
+    for (i <- 0 until b.getLength) {
+      positionsToAdd(i) = VectorUtils.getColumn(bArray, i)
+    }
+    MatrixUtils.setColumn(m, positionsToAdd, a.getNumColumns)
+
+    new GF2Matrix(a.getNumColumns + 1, m)
   }
 
   /** Generate identity matrix

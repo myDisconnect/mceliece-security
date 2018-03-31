@@ -1,7 +1,7 @@
 package com.andrius.masterThesis.attacks.critical
 
 import com.andrius.masterThesis.mceliece.McElieceCryptosystem.McEliecePublicKey
-import com.andrius.masterThesis.utils.{Math, Matrix, Vector}
+import com.andrius.masterThesis.utils.{MathUtils, MatrixUtils, VectorUtils}
 import org.bouncycastle.pqc.math.linearalgebra.{GF2Matrix, GF2Vector}
 
 import scala.collection.mutable
@@ -20,10 +20,30 @@ class RelatedMessage(publicKey: McEliecePublicKey) {
   val t: Int = publicKey.t
 
   /**
-    * This attack is almost exactly like Message-Resend attack, except messages m1 and m2 are not equal
-    * and we know the linear relation between m1 and m2
+    * Trying to find error vector and solve it's linear equation.
+    * This attack is almost exactly like Message-Resend attack(1), except messages m1 and m2 are not equal
+    * and we know the linear relation between m1 and m2.
     *
-    * Main relation: e1 + e2 = c1 + c2 + delta(m1 + m2) * G
+    * Main relation: e1 + e2 = c1 + c2 + delta(m1 + m2) * G'
+    * WARNING: This attack has a chance to return incorrect message vector when:
+    * - selected incorrect error vector from the sum
+    * - selected incorrect error vector from missing positions
+    *
+    * @param c1 cipher for message m
+    * @param c2 cipher for message m
+    * @param mDelta linear relation between m1 and m2
+    * @return message vector
+    */
+  def attack1(c1: GF2Vector, c2: GF2Vector, mDelta: GF2Vector): GF2Vector = {
+    new MessageResend(publicKey).attack1(c1, g.leftMultiply(mDelta).add(c2).asInstanceOf[GF2Vector])
+  }
+
+  /**
+    * Looking for a G relation with error free positions in the ciphertexts.
+    * This attack is almost exactly like Message-Resend attack(2), except messages m1 and m2 are not equal
+    * and we know the linear relation between m1 and m2.
+    *
+    * Main relation: e1 + e2 = c1 + c2 + delta(m1 + m2) * G'
     * WARNING: This attack has a chance to return incorrect message vector (error vectors e1 and e2 ones collision case)
     *
     * @see com.andrius.masterThesis.attacks.critical.MessageResend
@@ -32,38 +52,8 @@ class RelatedMessage(publicKey: McEliecePublicKey) {
     * @param mDelta linear relation between m1 and m2
     * @return message vector
     */
-  def attack(c1: GF2Vector, c2: GF2Vector, mDelta: GF2Vector): GF2Vector = {
-    var decipheredMsg = new GF2Vector(k)
-    var found = false
-    val failedTriesDictionary = mutable.HashSet.empty[Set[Int]]
-    val c1c2delta = g.leftMultiply(mDelta).add(c1.add(c2)).asInstanceOf[GF2Vector]
-    val collisionFreePositions = new ListBuffer[Int]()
-    for (j <- 0 until c1c2delta.getLength) {
-      if (c1c2delta.getBit(j) != 1) {
-        collisionFreePositions += j
-      }
-    }
-    val collisionFreePositionList = collisionFreePositions.toList
-    while (!found) {
-      // Let's take a random sample from most likely error-free vectors
-      val colPositions = Math.sample(collisionFreePositionList, k)
-      // Order is not important, because columns are linearly independent
-      val iSet = colPositions.toSet
-      if (!failedTriesDictionary.contains(iSet)) {
-        failedTriesDictionary += iSet
-        val newMatSeq = Matrix.createGF2MatrixFromColumns(g, colPositions)
-
-        try {
-          val restrictedPub = newMatSeq.computeInverse().asInstanceOf[GF2Matrix]
-          found = true
-          val c1Prime = Vector.createGF2VectorFromColumns(c1, colPositions)
-          decipheredMsg = restrictedPub.leftMultiply(c1Prime).asInstanceOf[GF2Vector]
-        } catch {
-          case _: ArithmeticException =>
-          // Matrix is not invertible
-        }
-      }
-    }
-    decipheredMsg
+  def attack2(c1: GF2Vector, c2: GF2Vector, mDelta: GF2Vector): GF2Vector = {
+    new MessageResend(publicKey).attack2(c1, g.leftMultiply(mDelta).add(c2).asInstanceOf[GF2Vector])
   }
+
 }

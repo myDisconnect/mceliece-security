@@ -6,7 +6,7 @@ import com.andrius.masterThesis.attacks.critical.{KnownPartialPlaintext, Message
 import com.andrius.masterThesis.attacks.structural.SupportSplittingAlgorithm
 import com.andrius.masterThesis.mceliece.McElieceCryptosystem
 import com.andrius.masterThesis.mceliece.McElieceCryptosystem.Configuration
-import com.andrius.masterThesis.utils.{Logging, UserInputProcessor, Vector}
+import com.andrius.masterThesis.utils.{LoggingUtils, UserInputProcessorUtils, VectorUtils}
 import org.bouncycastle.pqc.math.linearalgebra.GF2Vector
 
 import scala.collection.mutable.ListBuffer
@@ -17,20 +17,22 @@ import scala.collection.mutable.ListBuffer
 object Main {
 
   def main(args: Array[String]): Unit = {
-    val configuration = UserInputProcessor.getMcElieceConfiguration
-    val (keyPairCount, messageCount) = UserInputProcessor.getAttackOptions
-    val attackId = UserInputProcessor.getAttackId
+    val configuration = UserInputProcessorUtils.getMcElieceConfiguration
+    val (keyPairCount, messageCount) = UserInputProcessorUtils.getAttackOptions
+    val attackId = UserInputProcessorUtils.getAttackId
 
     attackId match {
       case Attack.Id.GISD =>
         generalizedInformationSetDecoding(configuration, keyPairCount, messageCount)
       case Attack.Id.KnownPartialPlaintext =>
-        val kRight = UserInputProcessor.getKnownPartial(configuration.k)
+        val kRight = UserInputProcessorUtils.getKnownPartial(configuration.k)
         knownPartialPlaintext(configuration, keyPairCount, messageCount, kRight)
       case Attack.Id.MessageResend =>
-        messageResend(configuration, keyPairCount, messageCount)
+        val algorithm = UserInputProcessorUtils.getRelatedMessageAlgorithm
+        messageResend(configuration, keyPairCount, messageCount, algorithm)
       case Attack.Id.RelatedMessage =>
-        relatedMessage(configuration, keyPairCount, messageCount)
+        val algorithm = UserInputProcessorUtils.getRelatedMessageAlgorithm
+        relatedMessage(configuration, keyPairCount, messageCount, algorithm)
       case Attack.Id.SupportSplitting =>
         throw new Exception("Currently not stable enough to attack, low chance of success")
         supportSplittingAlgorithm(configuration, keyPairCount, messageCount)
@@ -59,7 +61,7 @@ object Main {
       val leeBrickell = new LeeBrickell(mcEliecePKC.publicKey)
 
       for (_ <- 0 until messageCount) {
-        val msg = Vector.generateMessageVector(configuration.k)
+        val msg = VectorUtils.generateMessageVector(configuration.k)
         val cipher = mcEliecePKC.encryptVector(msg)
 
         val start = System.currentTimeMillis
@@ -72,15 +74,15 @@ object Main {
           timeResultsTotal += end
         }
         if (configuration.verbose.ramUsage) {
-          Logging.ramUsageResults()
+          LoggingUtils.ramUsageResults()
         }
       }
       if (configuration.verbose.partialResults) {
-        Logging.singleKeyPairResults(attackIds, messageCount, timeResultsKeyPair)
+        LoggingUtils.singleKeyPairResults(attackIds, messageCount, timeResultsKeyPair)
       }
     }
     if (configuration.verbose.totalResults) {
-      Logging.totalResults(attackIds, messageCount, keyPairCount, timeResultsTotal)
+      LoggingUtils.totalResults(attackIds, messageCount, keyPairCount, timeResultsTotal)
     }
   }
 
@@ -110,7 +112,7 @@ object Main {
         val mcEliecePKC = new McElieceCryptosystem(configuration)
         val partial = new KnownPartialPlaintext(mcEliecePKC.publicKey)
         for (_ <- 0 until messageCount) {
-          val msg = Vector.generateMessageVector(configuration.k)
+          val msg = VectorUtils.generateMessageVector(configuration.k)
           val cipher = mcEliecePKC.encryptVector(msg)
           val knownRight = msg.extractRightVector(kRight)
 
@@ -130,11 +132,11 @@ object Main {
             timeResultsTotal += end
           }
           if (configuration.verbose.ramUsage) {
-            Logging.ramUsageResults()
+            LoggingUtils.ramUsageResults()
           }
         }
         if (configuration.verbose.partialResults) {
-          Logging.singleKeyPairResults(
+          LoggingUtils.singleKeyPairResults(
             attackIds,
             messageCount,
             timeResultsKeyPair,
@@ -153,7 +155,7 @@ object Main {
           timeResultsTotal ++= results
         }
         if (configuration.verbose.partialResults) {
-          Logging.totalResults(
+          LoggingUtils.totalResults(
             attackIds,
             messageCount,
             keyPairCount,
@@ -162,7 +164,7 @@ object Main {
         }
       }
       if (configuration.verbose.totalResults) {
-        Logging.totalResults(
+        LoggingUtils.totalResults(
           attackIds,
           messageCount,
           keyPairCount,
@@ -172,7 +174,7 @@ object Main {
     } else {
       val results = executeAttack(knownRight)
       if (configuration.verbose.totalResults) {
-        Logging.totalResults(
+        LoggingUtils.totalResults(
           attackIds,
           messageCount,
           keyPairCount,
@@ -188,11 +190,13 @@ object Main {
     * @param configuration McEliece PKC configuration
     * @param keyPairCount  McEliece PKC random public & private key pair count
     * @param messageCount  randomly generated message count per key pair
+    * @param algorithm     algorithm selected
     **/
   def messageResend(
                      configuration: Configuration,
                      keyPairCount: Int,
-                     messageCount: Int
+                     messageCount: Int,
+                     algorithm: Int
                    ): Unit = {
     val attackIds = List(Attack.Id.MessageResend)
     var extraTriesTotal = 0
@@ -205,7 +209,7 @@ object Main {
       val mcEliecePKC = new McElieceCryptosystem(configuration)
       val messageResend = new MessageResend(mcEliecePKC.publicKey)
       for (_ <- 0 until messageCount) {
-        val msg = Vector.generateMessageVector(configuration.k)
+        val msg = VectorUtils.generateMessageVector(configuration.k)
 
         val cipher1 = mcEliecePKC.encryptVector(msg)
         val cipher2 = mcEliecePKC.encryptVector(msg)
@@ -220,8 +224,13 @@ object Main {
           while (!found) {
             // it is possible to check if padding is correct (filter failures)
             // Vector.computeMessage(messageResend.attack(cipher1, cipher2))
-            val result = messageResend.attack(cipher1, cipher2)
-            if (messageResend.attack(cipher1, cipher2).equals(msg)) {
+            val result = algorithm match {
+              case Attack.RelatedMessageAlgorithm.IndependentLinearColumns =>
+                messageResend.attack2(cipher1, cipher2)
+              case _ =>
+                messageResend.attack1(cipher1, cipher2)
+            }
+            if (result.equals(msg)) {
               val end = System.currentTimeMillis - start
               if (configuration.verbose.partialResults) {
                 timeResultsKeyPair += end
@@ -241,45 +250,50 @@ object Main {
           }
         } catch {
           case _: IllegalArgumentException =>
+            // identical errors generated
             identicalErrorsLocal += 1
         }
       }
       if (configuration.verbose.partialResults) {
-        Logging.singleKeyPairResults(
+        LoggingUtils.singleKeyPairResults(
           attackIds,
           messageCount,
           timeResultsKeyPair,
-          s" with extra iterations needed $extraTriesLocal and accidental identical errors caught $identicalErrorsLocal"
+          s"Total tries needed ${extraTriesLocal + messageCount} and accidental identical errors generated " +
+            s"$identicalErrorsLocal."
         )
       }
       if (configuration.verbose.ramUsage) {
-        Logging.ramUsageResults()
+        LoggingUtils.ramUsageResults()
       }
     }
     if (configuration.verbose.totalResults) {
-      Logging.totalResults(
+      LoggingUtils.totalResults(
         attackIds,
         messageCount,
         keyPairCount,
         timeResultsTotal,
-        s" with extra iterations needed $extraTriesTotal"
+        s"Total tries needed ${extraTriesTotal + messageCount}."
       )
     }
   }
 
   /**
     * Critical: Related-Message Attack
+    *
     * Note. Our selected delta = message vectors differ in every 32 position.
     * It is possible generate random deltas.
     *
     * @param configuration McEliece PKC configuration
     * @param keyPairCount  McEliece PKC random public & private key pair count
     * @param messageCount  randomly generated message count per key pair
+    * @param algorithm     algorithm selected
     */
   def relatedMessage(
                       configuration: Configuration,
                       keyPairCount: Int,
-                      messageCount: Int
+                      messageCount: Int,
+                      algorithm: Int
                     ): Unit = {
     val attackIds = List(Attack.Id.RelatedMessage)
     var extraTriesTotal = 0
@@ -292,7 +306,7 @@ object Main {
       val mcEliecePKC = new McElieceCryptosystem(configuration)
       val relatedMessage = new RelatedMessage(mcEliecePKC.publicKey)
       for (_ <- 0 until messageCount) {
-        val msg1 = Vector.generateMessageVector(configuration.k)
+        val msg1 = VectorUtils.generateMessageVector(configuration.k)
         // For example, we know that message vector always differ in every 32 position
         val mDelta = new GF2Vector(configuration.k, Array.fill((configuration.k - 1) / 32 + 1)(1))
         val msg2 = msg1.add(mDelta).asInstanceOf[GF2Vector]
@@ -301,12 +315,19 @@ object Main {
         val cipher2 = mcEliecePKC.encryptVector(msg2)
         try {
           if (cipher1.equals(cipher2)) {
-            throw new IllegalArgumentException("Attack cannot be successful, message m encoded with same error vectors (e1=e2)")
+            throw new IllegalArgumentException("Attack cannot be successful, " +
+              "message m encoded with same error vectors (e1 = e2)")
           }
           var found = false
           val start = System.currentTimeMillis
           while (!found) {
-            if (relatedMessage.attack(cipher1, cipher2, mDelta).equals(msg1)) {
+            val result = algorithm match {
+              case Attack.RelatedMessageAlgorithm.IndependentLinearColumns =>
+                relatedMessage.attack2(cipher1, cipher2, mDelta)
+              case _ =>
+                relatedMessage.attack1(cipher1, cipher2, mDelta)
+            }
+            if (result.equals(msg1)) {
               val end = System.currentTimeMillis - start
               if (configuration.verbose.partialResults) {
                 timeResultsKeyPair += end
@@ -326,28 +347,30 @@ object Main {
           }
         } catch {
           case _: IllegalArgumentException =>
+            // identical errors generated
             identicalErrorsLocal += 1
         }
       }
       if (configuration.verbose.partialResults) {
-        Logging.singleKeyPairResults(
+        LoggingUtils.singleKeyPairResults(
           attackIds,
           messageCount,
           timeResultsKeyPair,
-          s" with extra iterations needed $extraTriesLocal and accidental identical errors caught $identicalErrorsLocal"
+          s"Total tries needed ${extraTriesLocal + messageCount} and accidental identical errors generated " +
+            s"$identicalErrorsLocal."
         )
       }
       if (configuration.verbose.ramUsage) {
-        Logging.ramUsageResults()
+        LoggingUtils.ramUsageResults()
       }
     }
     if (configuration.verbose.totalResults) {
-      Logging.totalResults(
+      LoggingUtils.totalResults(
         attackIds,
         messageCount,
         keyPairCount,
         timeResultsTotal,
-        s" with extra iterations needed $extraTriesTotal"
+        s"Total tries needed ${extraTriesTotal + messageCount}."
       )
     }
   }
@@ -383,18 +406,18 @@ object Main {
         }
       }
       if (configuration.verbose.partialResults) {
-        Logging.singleKeyPairResults(
+        LoggingUtils.singleKeyPairResults(
           attackIds,
           messageCount,
           timeResultsKeyPair
         )
       }
       if (configuration.verbose.ramUsage) {
-        Logging.ramUsageResults()
+        LoggingUtils.ramUsageResults()
       }
     }
     if (configuration.verbose.totalResults) {
-      Logging.totalResults(
+      LoggingUtils.totalResults(
         attackIds,
         messageCount,
         keyPairCount,

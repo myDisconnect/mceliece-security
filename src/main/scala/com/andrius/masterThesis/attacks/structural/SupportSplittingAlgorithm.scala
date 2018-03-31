@@ -4,7 +4,7 @@ import java.security.SecureRandom
 
 import com.andrius.masterThesis.attacks.structural.SupportSplittingAlgorithm.SSAVerboseOptions
 import com.andrius.masterThesis.mceliece.McElieceCryptosystem.McEliecePublicKey
-import com.andrius.masterThesis.utils.{GeneratorMatrix, Goppa, Logging, Vector}
+import com.andrius.masterThesis.utils.{GeneratorMatrixUtils, GoppaUtils, LoggingUtils, VectorUtils}
 import org.bouncycastle.pqc.math.linearalgebra.{GF2Matrix, GF2Vector, GF2mField, IntUtils, Permutation, PolynomialGF2mSmallM}
 
 import scala.collection.mutable
@@ -34,7 +34,7 @@ class SupportSplittingAlgorithm(publicKey: McEliecePublicKey, verbose: SSAVerbos
   val t: Int = publicKey.t
   val m: Int = (n - k) / t
 
-  var publicKeySignature: Map[Seq[Int], Seq[String]] = getSignature(GeneratorMatrix.generateAllCodewords(g))
+  var publicKeySignature: Map[Seq[Int], Seq[String]] = getSignature(GeneratorMatrixUtils.generateAllCodewords(g))
 
   /**
     * @return private key matrix g
@@ -350,7 +350,7 @@ object SupportSplittingAlgorithm {
     for (vector <- codewords) {
       val out = IntUtils.clone(vector.getVecArray)
       for (position <- positions) {
-        Vector.setColumn(out, 0, position)
+        VectorUtils.setColumn(out, 0, position)
       }
       val newVector = new GF2Vector(vector.getLength, out)
       if (!puncturedCodewords.contains(newVector)) {
@@ -370,11 +370,11 @@ object SupportSplittingAlgorithm {
   def swapByPermutationMap(codewords: List[GF2Vector], permutationMap: Map[Int, Int]): List[GF2Vector] = {
     val permutedCodewords = new ListBuffer[GF2Vector]()
     val positions = new ListBuffer[Int]()
-    for (permutation <- permutationMap.toSeq.sortBy(_._2)) {
-      positions += permutation._1
+    for (permutation <- permutationMap.toSeq.sortBy(_._1)) {
+      positions += permutation._2
     }
     for (codeword <- codewords) {
-      permutedCodewords += Vector.createGF2VectorFromColumns(codeword, positions.toList)
+      permutedCodewords += VectorUtils.createGF2VectorFromColumns(codeword, positions.toList)
     }
     permutedCodewords.toList
   }
