@@ -142,7 +142,7 @@ class SupportSplittingAlgorithmTest extends FlatSpec {
     )
   }
 
-  it should "find permutation by puncturing the column twice" in {
+  /*it should "find permutation by puncturing the column twice" in {
     val g = MatrixUtils.createGF2Matrix(Seq(
       Seq(1, 1, 1, 1),
       Seq(1, 0, 0, 0)
@@ -165,10 +165,10 @@ class SupportSplittingAlgorithmTest extends FlatSpec {
       .exists(_.groupBy(identity).collect { case (x, ys) if ys.length == 2 => x }.nonEmpty)
 
     assert(existTwoDuplicatePunctures, "SSA algorithm implemented incorrectly")
-  }
+  }*/
 
-  it should "attack should always be successful with the same irreductible Goppa Polynomial" in {
-    /*val configuration = Configuration(m = 4, t = 1)
+  /*it should "attack should always be successful with the same irreductible Goppa Polynomial" in {
+    val configuration = Configuration(m = 3, t = 1, VerboseOptions(keyPairGeneration = true))
     val mcEliecePKC = new McElieceCryptosystem(configuration)
     val g1 = mcEliecePKC.publicKey.gPublic
     val g2 = GeneratorMatrixUtils.findNullSpace(mcEliecePKC.privateKey.h).rightMultiply(mcEliecePKC.publicKey.pLocal).asInstanceOf[GF2Matrix]
@@ -178,22 +178,22 @@ class SupportSplittingAlgorithmTest extends FlatSpec {
     val g1Signature = SupportSplittingAlgorithm.getSignature(g1Codewords)
 
     val permutation = SupportSplittingAlgorithm.findPermutation(g1Signature, g1Codewords, g2Codewords)
-    println(permutation)
-    val permutedCodewords = SupportSplittingAlgorithm.swapByPermutationMap(g1Codewords, permutation)
-    println(s"codewords expected: $g2Codewords\npermutedCodewords: $permutedCodewords")
-    assert(
-      permutedCodewords.forall(g2Codewords.contains),
-      "SSA algorithm implemented incorrectly"
-    )*/
-  }
+    println(s"g1Codewords: $g1Codewords\ng2Codewords: $g2Codewords")
+    println(s"permutation: $permutation")
+    val permutedCodewords = SupportSplittingAlgorithm.swapByPermutationMap(g2Codewords, permutation)
+    println(s"codewords expected: $g1Codewords\npermutedCodewords: $permutedCodewords")
+    assert(permutedCodewords.forall(g1Codewords.contains), "SSA algorithm implemented incorrectly")
+  }*/
 
   it should "attack should fail with different irreductible Goppa Polynomials" in {
-    /*val configuration = Configuration(m = 4, t = 1, VerboseOptions(keyPairGeneration = true))
+    val configuration = Configuration(m = 4, t = 2, VerboseOptions(keyPairGeneration = true))
+    println(configuration.k)
     val mcEliecePKC = new McElieceCryptosystem(configuration)
     val g1 = mcEliecePKC.publicKey.gPublic
     val g1private = GeneratorMatrixUtils.generateAllCodewords(GeneratorMatrixUtils.findNullSpace(mcEliecePKC.privateKey.h).rightMultiply(mcEliecePKC.publicKey.pLocal).asInstanceOf[GF2Matrix])
     val g1Codewords = GeneratorMatrixUtils.generateAllCodewords(g1)
     val g1Signature = SupportSplittingAlgorithm.getSignature(g1Codewords)
+    println(s"g1Signature:\n$g1Signature")
     for (_ <- 0 until 50) {
       val mcEliecePKC2 = new McElieceCryptosystem(configuration)
       val g2 = GeneratorMatrixUtils.findNullSpace(mcEliecePKC2.privateKey.h).rightMultiply(mcEliecePKC2.publicKey.pLocal).asInstanceOf[GF2Matrix]
@@ -201,10 +201,15 @@ class SupportSplittingAlgorithmTest extends FlatSpec {
       val g2Codewords = GeneratorMatrixUtils.generateAllCodewords(g2)
       println(s"g1 codewords contains g2 codewords = ${g1private.forall(g2Codewords.contains)}")
 
-      val g1Signature = SupportSplittingAlgorithm.getSignature(g1Codewords)
 
       val permutation = SupportSplittingAlgorithm.findPermutation(g1Signature, g1Codewords, g2Codewords)
-    }*/
+      val permutedCodewords = SupportSplittingAlgorithm.swapByPermutationMap(g1Codewords, permutation)
+      println(s"codewords expected: $g2Codewords\npermutedCodewords: $permutedCodewords")
+      /*assert(
+        permutedCodewords.forall(g2Codewords.contains),
+        "SSA algorithm implemented incorrectly"
+      )*/
+    }
     /*println(permutation)
     val permutedCodewords = SupportSplittingAlgorithm.swapByPermutationMap(g1Codewords, permutation)
     println(s"codewords expected: $g2Codewords\npermutedCodewords: $permutedCodewords")
@@ -292,7 +297,7 @@ class SupportSplittingAlgorithmTest extends FlatSpec {
     val g2Codewords = GeneratorMatrixUtils.generateAllCodewords(g2)
     val permutation = Map(2 -> 3, 1 -> 2, 3 -> 0, 0 -> 1)
     assert(
-      SupportSplittingAlgorithm.swapByPermutationMap(gCodewords, permutation).forall(g2Codewords.contains),
+      SupportSplittingAlgorithm.swapByPermutationMap(g2Codewords, permutation).forall(gCodewords.contains),
       "SSA algorithm implemented incorrectly"
     )
   }

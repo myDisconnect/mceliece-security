@@ -1,4 +1,4 @@
-# Master's thesis: Study of the security of McEliece public-key
+# Master's thesis: Study of the security of McEliece public-key cryptosystem
 This repository contains implementations of well known attacks against the original McEliece cryptosystem with binary Goppa codes.
 
 If you find any problems with the code, don't be afraid to open an issue or [e-mail me](mailto:andrius.versockas@gmail.com)
