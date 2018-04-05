@@ -17,9 +17,15 @@ import scala.collection.mutable.ListBuffer
 object Main {
 
   def main(args: Array[String]): Unit = {
-    val configuration = UserInputProcessorUtils.getMcElieceConfiguration
-    val (keyPairCount, messageCount) = UserInputProcessorUtils.getAttackOptions
     val attackId = UserInputProcessorUtils.getAttackId
+    val configuration = UserInputProcessorUtils.getMcElieceConfiguration
+    val keyPairCount = UserInputProcessorUtils.getKeyPairCount
+    val messageCount = attackId match {
+      case Attack.Id.SupportSplitting =>
+        0
+      case _ =>
+        UserInputProcessorUtils.getMessageCount
+    }
 
     attackId match {
       case Attack.Id.GISD =>

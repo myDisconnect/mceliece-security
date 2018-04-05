@@ -21,7 +21,6 @@ object UserInputProcessorUtils {
   }
 
   def getMcElieceConfiguration: Configuration = {
-    Console.println("[INFO] Press Enter if the default values suit you.")
     // Default options
     val defaultM = 5
     val defaultT = 2
@@ -63,14 +62,16 @@ object UserInputProcessorUtils {
     VerboseOptions(securityParameters, keyPairGeneration, cipherGeneration, partialResults, totalResults, ramUsageResults)
   }
 
-  def getAttackOptions: (Int, Int) = {
+  def getKeyPairCount: Int = {
     val defaultKeyPairCount = 1
-    val defaultMessageCount = 1000
     Console.println(s"Enter the number of randomly generated McEliece keys to attack ${printDefault(defaultKeyPairCount)}")
-    val keyPairCount = getIntOrDefault(StdIn.readLine(), defaultKeyPairCount)
+    getIntOrDefault(StdIn.readLine(), defaultKeyPairCount)
+  }
+
+  def getMessageCount: Int = {
+    val defaultMessageCount = 1000
     Console.println(s"Enter the number of messages to encrypt with single McEliece key pair ${printDefault(defaultMessageCount)}")
-    val messageCount = getIntOrDefault(StdIn.readLine(), defaultMessageCount)
-    (keyPairCount, messageCount)
+    getIntOrDefault(StdIn.readLine(), defaultMessageCount)
   }
 
   def getRelatedMessageAlgorithm: Int = {
@@ -91,6 +92,8 @@ object UserInputProcessorUtils {
   }
 
   def getAttackId: Int = {
+    Console.println("[INFO] Press Enter if the default values suit you.")
+    Console.println(s"Enter the number of the attack to execute:")
     Attack.map.foreach(attack => Console.println(s"${attack._1} - ${attack._2}"))
     StdIn.readInt
   }
