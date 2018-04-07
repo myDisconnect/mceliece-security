@@ -92,12 +92,14 @@ class MessageResend(publicKey: McEliecePublicKey) {
     }
     val collisionFreePositionList = l1.toList
     val possibleTries = CombinatoricsUtils.combinations(l1.length, k)
-    while (!found && failedTriesDictionary.size < possibleTries) {
+    var tries: BigInt = 0
+    while (!found && tries < possibleTries) {
       // Let's take a random sample from most likely error-free vectors
       val colPositions = MathUtils.sample(collisionFreePositionList, k)
       // Order is not important, because we are looking for linearly independent columns
       val iSet = colPositions.toSet
       if (!failedTriesDictionary.contains(iSet)) {
+        tries += 1
         failedTriesDictionary += iSet
         val newMatSeq = MatrixUtils.createGF2MatrixFromColumns(g, colPositions)
 
