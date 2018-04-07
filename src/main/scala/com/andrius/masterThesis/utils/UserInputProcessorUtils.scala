@@ -74,6 +74,13 @@ object UserInputProcessorUtils {
     getIntOrDefault(StdIn.readLine(), defaultMessageCount)
   }
 
+
+  def getSearchSizeParameter: Int = {
+    val defaultSearchSize = 2
+    Console.println(s"Enter the search size parameter `p` (0 <= p <= t) ${printDefault(defaultSearchSize)}")
+    getIntOrDefault(StdIn.readLine(), defaultSearchSize)
+  }
+
   def getRelatedMessageAlgorithm: Int = {
     val defaultAlgorithm = Attack.RelatedMessageAlgorithm.IndependentLinearColumns
     Console.println(s"Enter the number of algorithm to use ${printDefault(defaultAlgorithm)}\n" +

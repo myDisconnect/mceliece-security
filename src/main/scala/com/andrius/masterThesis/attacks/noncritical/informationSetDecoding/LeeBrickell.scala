@@ -36,6 +36,7 @@ class LeeBrickell(publicKey: McEliecePublicKey) {
     * @return message
     */
   def attack(c: GF2Vector, p: Int = 2): GF2Vector = {
+    require(p >= 0 && p <= t, s"The search size parameter must be 0 <= p <= t. Received p = $p, t = $t.")
     var decipheredMsg = new GF2Vector(k)
     var found = false
     val columns = (0 until n).toList

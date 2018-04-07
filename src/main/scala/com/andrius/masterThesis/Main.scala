@@ -29,7 +29,8 @@ object Main {
 
     attackId match {
       case Attack.Id.GISD =>
-        generalizedInformationSetDecoding(configuration, keyPairCount, messageCount)
+        val searchSize = UserInputProcessorUtils.getSearchSizeParameter
+        generalizedInformationSetDecoding(configuration, keyPairCount, messageCount, searchSize)
       case Attack.Id.KnownPartialPlaintext =>
         val kRight = UserInputProcessorUtils.getKnownPartial(configuration.k)
         knownPartialPlaintext(configuration, keyPairCount, messageCount, kRight)
@@ -53,11 +54,13 @@ object Main {
     * @param configuration McEliece PKC configuration
     * @param keyPairCount  McEliece PKC random public & private key pair count
     * @param messageCount  randomly generated message count per key pair
+    * @param searchSize    search size parameter
     */
   def generalizedInformationSetDecoding(
                                          configuration: Configuration,
                                          keyPairCount: Int,
-                                         messageCount: Int
+                                         messageCount: Int,
+                                         searchSize: Int
                                        ): Unit = {
     val attackIds = List(Attack.Id.GISD)
     val timeResultsTotal = new ListBuffer[Long]()
@@ -71,7 +74,7 @@ object Main {
         val cipher = mcEliecePKC.encryptVector(msg)
 
         val start = System.currentTimeMillis
-        leeBrickell.attack(cipher)
+        leeBrickell.attack(cipher, searchSize)
         val end = System.currentTimeMillis - start
         if (configuration.verbose.partialResults) {
           timeResultsKeyPair += end
