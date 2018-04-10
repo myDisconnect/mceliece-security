@@ -2,13 +2,13 @@ package com.andrius.masterThesis.attacks
 
 object Attack {
 
-  val map: Seq[(Int, String)] = Map(
-    Id.GISD                   -> Name.GISD,
-    Id.KnownPartialPlaintext  -> Name.KnownPartialPlaintext,
-    Id.MessageResend          -> Name.MessageResend,
-    Id.RelatedMessage         -> Name.RelatedMessage,
-    Id.SupportSplitting       -> Name.SupportSplitting
-  ).toSeq.sortBy(_._1)
+  val map: Map[Int, String] = Map(
+    Id.GISD                  -> Name.GISD,
+    Id.KnownPartialPlaintext -> Name.KnownPartialPlaintext,
+    Id.MessageResend         -> Name.MessageResend,
+    Id.RelatedMessage        -> Name.RelatedMessage,
+    Id.SupportSplitting      -> Name.SupportSplitting
+  )
 
   object Id {
     val GISD                  = 1
@@ -27,8 +27,8 @@ object Attack {
   }
 
   object RelatedMessageAlgorithm {
-    val ErrorVectorSearch         = 1
-    val IndependentLinearColumns  = 2
+    val ErrorVectorSearch        = 1
+    val IndependentLinearColumns = 2
   }
 
 }

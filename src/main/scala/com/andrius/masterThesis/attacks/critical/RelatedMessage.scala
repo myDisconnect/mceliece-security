@@ -15,9 +15,9 @@ import scala.collection.mutable.ListBuffer
 class RelatedMessage(publicKey: McEliecePublicKey) {
 
   val g: GF2Matrix = publicKey.gPublic
-  val n: Int = g.getNumColumns
-  val k: Int = g.getNumRows
-  val t: Int = publicKey.t
+  val n: Int       = g.getNumColumns
+  val k: Int       = g.getNumRows
+  val t: Int       = publicKey.t
 
   /**
     * Trying to find error vector and solve it's linear equation.

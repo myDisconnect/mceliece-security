@@ -15,11 +15,11 @@ import scala.util.Random
   */
 class MessageResend(publicKey: McEliecePublicKey) {
 
-  val g: GF2Matrix = publicKey.gPublic
+  val g: GF2Matrix           = publicKey.gPublic
   val gTransposed: GF2Matrix = publicKey.gPublic.computeTranspose.asInstanceOf[GF2Matrix]
-  val n: Int = g.getNumColumns
-  val k: Int = g.getNumRows
-  val t: Int = publicKey.t
+  val n: Int                 = g.getNumColumns
+  val k: Int                 = g.getNumRows
+  val t: Int                 = publicKey.t
 
   /**
     * Trying to find error vector and solve it's linear equation.
@@ -34,8 +34,8 @@ class MessageResend(publicKey: McEliecePublicKey) {
     * @return message vector
     */
   def attack1(c1: GF2Vector, c2: GF2Vector): GF2Vector = {
-    val c1c2Sum = c1.add(c2).asInstanceOf[GF2Vector]
-    val c1c2hw = c1c2Sum.getHammingWeight
+    val c1c2Sum        = c1.add(c2).asInstanceOf[GF2Vector]
+    val c1c2hw         = c1c2Sum.getHammingWeight
     val expectedErrors = 2 * t
     require(c1c2hw <= 2 * t, "Received ciphers are not from the same message")
     require(c1c2hw != 0, "Received ciphers are identical")
@@ -55,7 +55,7 @@ class MessageResend(publicKey: McEliecePublicKey) {
       }
     }
     val colPositions = MathUtils.sample(l0.toList, t)
-    val cTry = VectorUtils.subtractColumnPositions(c1, colPositions)
+    val cTry         = VectorUtils.subtractColumnPositions(c1, colPositions)
 
     GeneratorMatrixUtils.solve(gTransposed, cTry)
   }
@@ -75,12 +75,12 @@ class MessageResend(publicKey: McEliecePublicKey) {
     */
   def attack2(c1: GF2Vector, c2: GF2Vector): GF2Vector = {
     val c1c2Sum = c1.add(c2).asInstanceOf[GF2Vector]
-    val c1c2hw = c1c2Sum.getHammingWeight
+    val c1c2hw  = c1c2Sum.getHammingWeight
     require(c1c2hw <= 2 * t, "Received ciphers are not from the same message")
     require(c1c2hw != 0, "Received ciphers are identical")
 
-    var decipheredMsg = new GF2Vector(k)
-    var found = false
+    var decipheredMsg         = new GF2Vector(k)
+    var found                 = false
     val failedTriesDictionary = mutable.HashSet.empty[Set[Int]]
 
     // Let's precompute positions, where most probably neither c1 or c2 are garbled by an error vector
@@ -91,8 +91,8 @@ class MessageResend(publicKey: McEliecePublicKey) {
       }
     }
     val collisionFreePositionList = l1.toList
-    val possibleTries = CombinatoricsUtils.combinations(l1.length, k)
-    var tries: BigInt = 0
+    val possibleTries             = CombinatoricsUtils.combinations(l1.length, k)
+    var tries: BigInt             = 0
     while (!found && tries < possibleTries) {
       // Let's take a random sample from most likely error-free vectors
       val colPositions = MathUtils.sample(collisionFreePositionList, k)

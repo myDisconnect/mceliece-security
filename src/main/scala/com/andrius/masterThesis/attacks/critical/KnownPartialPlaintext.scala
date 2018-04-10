@@ -16,9 +16,9 @@ import org.bouncycastle.pqc.math.linearalgebra.{GF2Matrix, GF2Vector}
 class KnownPartialPlaintext(publicKey: McEliecePublicKey) {
 
   val g: GF2Matrix = publicKey.gPublic
-  val n: Int = g.getNumColumns
-  val k: Int = g.getNumRows
-  val t: Int = publicKey.t
+  val n: Int       = g.getNumColumns
+  val k: Int       = g.getNumRows
+  val t: Int       = publicKey.t
 
   /**
     * This attack only reduces the security complexity of the encrypted message.
@@ -30,12 +30,12 @@ class KnownPartialPlaintext(publicKey: McEliecePublicKey) {
     */
   def attack(knownRight: GF2Vector, c: GF2Vector): ReducedSecurityComplexity = {
     val kRight = knownRight.getLength
-    val kLeft = k - kRight
+    val kLeft  = k - kRight
 
     val gRight = MatrixUtils.createGF2MatrixFromRows(g, Range(kLeft, k).toList)
-    val gLeft = MatrixUtils.createGF2MatrixFromRows(g, Range(0, kLeft).toList)
+    val gLeft  = MatrixUtils.createGF2MatrixFromRows(g, Range(0, kLeft).toList)
 
-    val cNew = c.add(gRight.leftMultiply(knownRight)).asInstanceOf[GF2Vector]
+    val cNew      = c.add(gRight.leftMultiply(knownRight)).asInstanceOf[GF2Vector]
     val pubKeyNew = McEliecePublicKey(gLeft, t, publicKey.pLocal)
 
     ReducedSecurityComplexity(cNew, pubKeyNew)

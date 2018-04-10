@@ -19,9 +19,9 @@ import scala.collection.mutable
 class LeeBrickell(publicKey: McEliecePublicKey) {
 
   val g: GF2Matrix = publicKey.gPublic
-  val n: Int = g.getNumColumns
-  val k: Int = g.getNumRows
-  val t: Int = publicKey.t
+  val n: Int       = g.getNumColumns
+  val k: Int       = g.getNumRows
+  val t: Int       = publicKey.t
 
   /**
     * Try to guess k correct positions in the received word.
@@ -35,12 +35,13 @@ class LeeBrickell(publicKey: McEliecePublicKey) {
     */
   def attack(c: GF2Vector, p: Int = 2): GF2Vector = {
     require(p >= 0 && p <= t, s"The search size parameter must be 0 <= p <= t. Received p = $p, t = $t.")
-    var decipheredMsg = new GF2Vector(k)
-    var found = false
-    val columns = (0 until n).toList
+
+    var decipheredMsg         = new GF2Vector(k)
+    var found                 = false
+    val columns               = (0 until n).toList
     val failedTriesDictionary = mutable.HashSet.empty[Set[Int]]
-    val possibleTries = CombinatoricsUtils.combinations(n, k)
-    var tries: BigInt = 0
+    val possibleTries         = CombinatoricsUtils.combinations(n, k)
+    var tries: BigInt         = 0
     while (!found && tries < possibleTries) {
       // Step 1. We randomise a possible "information-set" columns
       val i = MathUtils.sample(columns, k)
@@ -52,17 +53,17 @@ class LeeBrickell(publicKey: McEliecePublicKey) {
         val gi = MatrixUtils.createGF2MatrixFromColumns(g, i)
         try {
           val giInv = gi.computeInverse
-          val q = giInv.rightMultiply(g).asInstanceOf[GF2Matrix] // a.k.a gt
+          val q     = giInv.rightMultiply(g).asInstanceOf[GF2Matrix] // a.k.a gt
           // Step 2. Create ci (from c columns)
           val ci = VectorUtils.createGF2VectorFromColumns(c, i)
-          val y = c.add(q.leftMultiply(ci)).asInstanceOf[GF2Vector]
+          val y  = c.add(q.leftMultiply(ci)).asInstanceOf[GF2Vector]
           // Step 3. Trying to find error vector of t Hamming weight
           val piIt = Range.inclusive(0, p).iterator
           while (!found && piIt.hasNext) {
-            val pi = piIt.next
+            val pi  = piIt.next
             val aIt = Range(0, k).combinations(pi)
             while (!found && aIt.hasNext) {
-              val a = aIt.next
+              val a   = aIt.next
               var sum = new GF2Vector(n)
               for (i <- Range(0, pi)) {
                 val row = new GF2Vector(q.getNumColumns, q.getRow(a(i)))
@@ -87,7 +88,7 @@ class LeeBrickell(publicKey: McEliecePublicKey) {
     }
     if (!found) {
       throw new Exception(
-        s"[Cannot decrypt message] Impossible to find linearly independent columns with selected p = $p"
+        s"[Cannot decrypt message] Impossible to information set with selected p = $p"
       )
     }
     decipheredMsg
