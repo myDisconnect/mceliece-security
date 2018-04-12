@@ -186,7 +186,7 @@ class SupportSplittingAlgorithmTest extends FlatSpec {
   }*/
 
   it should "attack should fail with different irreductible Goppa Polynomials" in {
-    val configuration = Configuration(m = 4, t = 2, VerboseOptions(keyPairGeneration = true))
+    /*val configuration = Configuration(m = 4, t = 2, VerboseOptions(keyPairGeneration = true))
     println(configuration.k)
     val mcEliecePKC = new McElieceCryptosystem(configuration)
     val g1 = mcEliecePKC.publicKey.gPublic
@@ -209,7 +209,7 @@ class SupportSplittingAlgorithmTest extends FlatSpec {
         permutedCodewords.forall(g2Codewords.contains),
         "SSA algorithm implemented incorrectly"
       )*/
-    }
+    }*/
     /*println(permutation)
     val permutedCodewords = SupportSplittingAlgorithm.swapByPermutationMap(g1Codewords, permutation)
     println(s"codewords expected: $g2Codewords\npermutedCodewords: $permutedCodewords")
@@ -220,11 +220,11 @@ class SupportSplittingAlgorithmTest extends FlatSpec {
   }
 
   "The Support Splitting Algorithm based attack" should "attack should always be successful, m = 2, t = 2" in {
-    val configuration = Configuration(m = 3, t = 2, VerboseOptions(keyPairGeneration = true))
+    /*val configuration = Configuration(m = 3, t = 2, VerboseOptions(keyPairGeneration = true))
 
     //for (_ <- 0 until 5) {
     val mcEliecePKC = new McElieceCryptosystem(configuration)
-    SupportSplittingAlgorithm.getSignature(GeneratorMatrixUtils.generateAllCodewords(mcEliecePKC.publicKey.gPublic))
+    SupportSplittingAlgorithm.getSignature(GeneratorMatrixUtils.generateAllCodewords(mcEliecePKC.publicKey.gPublic))*/
     //val ssa = new SupportSplittingAlgorithm(mcEliecePKC.publicKey)
     //println(s"Public ${mcEliecePKC.privateKey.getGoppaPoly}\nPublic G' = \n${mcEliecePKC.publicKey.getG}")
     //ssa.attack

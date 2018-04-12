@@ -40,16 +40,13 @@ class LeeBrickell(publicKey: McEliecePublicKey) {
     var found                 = false
     val columns               = (0 until n).toList
     val failedTriesDictionary = mutable.HashSet.empty[Set[Int]]
-    val possibleTries         = CombinatoricsUtils.combinations(n, k)
-    var tries: BigInt         = 0
-    while (!found && tries < possibleTries) {
+    while (!found) {
       // Step 1. We randomise a possible "information-set" columns
       val i = MathUtils.sample(columns, k)
       // Order is not important, because columns should be linearly independent
       val iSet = i.toSet
       if (!failedTriesDictionary.contains(iSet)) {
         failedTriesDictionary += iSet
-        tries += 1
         val gi = MatrixUtils.createGF2MatrixFromColumns(g, i)
         try {
           val giInv = gi.computeInverse
@@ -85,11 +82,6 @@ class LeeBrickell(publicKey: McEliecePublicKey) {
           // Matrix cannot be inverted. Not an information set
         }
       }
-    }
-    if (!found) {
-      throw new Exception(
-        s"[Cannot decrypt message] Impossible to information set with selected p = $p"
-      )
     }
     decipheredMsg
   }
