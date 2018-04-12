@@ -67,35 +67,71 @@ object Main {
       messageCount: Int,
       searchSize: Int
   ): Unit = {
-    val timeResultsTotal = new ListBuffer[Long]()
-    for (_ <- 0 until keyPairCount) {
-      val timeResultsKeyPair = new ListBuffer[Long]()
-      val mcEliecePKC        = new McElieceCryptosystem(configuration)
-      val leeBrickell        = new LeeBrickell(mcEliecePKC.publicKey)
 
-      for (_ <- 0 until messageCount) {
-        val msg    = VectorUtils.generateMessageVector(configuration.k)
-        val cipher = mcEliecePKC.encryptVector(msg)
+    def executeAttack(searchSize: Int): ListBuffer[Long] = {
+      val timeResultsTotal = new ListBuffer[Long]()
+      for (_ <- 0 until keyPairCount) {
+        val timeResultsKeyPair = new ListBuffer[Long]()
+        val mcEliecePKC = new McElieceCryptosystem(configuration)
+        val leeBrickell = new LeeBrickell(mcEliecePKC.publicKey)
 
-        val start = System.currentTimeMillis
-        leeBrickell.attack(cipher, searchSize)
-        val end = System.currentTimeMillis - start
+        for (_ <- 0 until messageCount) {
+          val msg = VectorUtils.generateMessageVector(configuration.k)
+          val cipher = mcEliecePKC.encryptVector(msg)
+
+          val start = System.currentTimeMillis
+          leeBrickell.attack(cipher, searchSize)
+          val end = System.currentTimeMillis - start
+          if (configuration.verbose.partialResults) {
+            timeResultsKeyPair += end
+          }
+          if (configuration.verbose.totalResults) {
+            timeResultsTotal += end
+          }
+          if (configuration.verbose.ramUsage) {
+            LoggingUtils.ramUsageResults()
+          }
+        }
         if (configuration.verbose.partialResults) {
-          timeResultsKeyPair += end
-        }
-        if (configuration.verbose.totalResults) {
-          timeResultsTotal += end
-        }
-        if (configuration.verbose.ramUsage) {
-          LoggingUtils.ramUsageResults()
+          LoggingUtils.singleKeyPairResults(messageCount, timeResultsKeyPair)
         }
       }
-      if (configuration.verbose.partialResults) {
-        LoggingUtils.singleKeyPairResults(messageCount, timeResultsKeyPair)
-      }
+      timeResultsTotal
     }
-    if (configuration.verbose.totalResults) {
-      LoggingUtils.totalResults(messageCount, keyPairCount, timeResultsTotal)
+
+    if (searchSize == -1) {
+      val timeResultsTotal = new ListBuffer[Long]()
+      for (searchSize <- 0 to configuration.t) {
+        val results = executeAttack(searchSize)
+        if (configuration.verbose.totalResults) {
+          timeResultsTotal ++= results
+        }
+        if (configuration.verbose.partialResults) {
+          LoggingUtils.totalResults(
+            messageCount,
+            keyPairCount,
+            results,
+            s"Search size parameter p = $searchSize."
+          )
+        }
+      }
+      if (configuration.verbose.totalResults) {
+        LoggingUtils.totalResults(
+          messageCount,
+          keyPairCount,
+          timeResultsTotal,
+          s"Tried all 1..${configuration.t} search size positions."
+        )
+      }
+    } else {
+      val results = executeAttack(searchSize)
+      if (configuration.verbose.totalResults) {
+        LoggingUtils.totalResults(
+          messageCount,
+          keyPairCount,
+          results
+        )
+      }
     }
   }
 

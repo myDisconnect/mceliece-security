@@ -10,6 +10,8 @@ import scala.io.StdIn
   */
 object UserInputProcessorUtils {
 
+  val ExecuteAll = -1
+
   val consoleBooleanAnswer = Map(
     YesNoAnswer.Yes -> true,
     YesNoAnswer.No  -> false
@@ -87,7 +89,10 @@ object UserInputProcessorUtils {
 
   def getSearchSizeParameter(t: Int): Int = {
     val defaultSearchSize = if (t < 2) t else 2
-    Console.println(s"Enter the search size parameter `p` (0 <= p <= $t) ${printDefault(defaultSearchSize)}")
+    Console.println(
+      s"Enter the search size parameter `p` (0 <= p <= $t), where $ExecuteAll - " +
+        s"executes for all 0..$t known positions ${printDefault(defaultSearchSize)}"
+    )
     getIntOrDefault(StdIn.readLine, defaultSearchSize)
   }
 
@@ -102,9 +107,9 @@ object UserInputProcessorUtils {
   }
 
   def getKnownPartial(messageLength: Int): Int = {
-    val defaultKnownRight = 0
+    val defaultKnownRight = ExecuteAll
     Console.println(
-      s"Enter the number of known right bits of the plaintext, where $defaultKnownRight - " +
+      s"Enter the number of known right bits of the plaintext, where $ExecuteAll - " +
         s"executes for all 1..${messageLength - 1} known positions ${printDefault(defaultKnownRight)}"
     )
     val kRight = getIntOrDefault(StdIn.readLine, defaultKnownRight)
@@ -115,7 +120,7 @@ object UserInputProcessorUtils {
   def getAttackId: Int = {
     Console.println("[INFO] Press Enter if the default values suit you.")
     Console.println(s"Enter the number of the attack to execute:")
-    Attack.map.toSeq.sortBy(_._1)foreach(attack => Console.println(s"${attack._1} - ${attack._2}"))
+    Attack.map.toSeq.sortBy(_._1).foreach(attack => Console.println(s"${attack._1} - ${attack._2}"))
     StdIn.readInt
   }
 
