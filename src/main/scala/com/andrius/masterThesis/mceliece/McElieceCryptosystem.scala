@@ -37,17 +37,18 @@ class McElieceCryptosystem(config: Configuration) {
   val k: Int = config.k
 
   if (config.verbose.receivedSecurityParameters) {
-    LoggingUtils.receivedSecurityParametersResults(n,k,t,m)
+    LoggingUtils.receivedSecurityParametersResults(n, k, t, m)
   }
 
   // Generate original McEliece cryptosystem public and private keys
   private val generatedKeys = {
     // finite field GF(2^m)
     val fieldPoly = GoppaUtils.getIrreduciblePolynomial(m, sr)
+    //val fieldPoly = PolynomialRingGF2.getIrreduciblePolynomial(m)
     val field = new GF2mField(m, fieldPoly)
 
     // irreducible Goppa polynomial
-    val gp = new PolynomialGF2mSmallM(field, t, PolynomialGF2mSmallM.RANDOM_IRREDUCIBLE_POLYNOMIAL, sr)
+    val gp   = new PolynomialGF2mSmallM(field, t, PolynomialGF2mSmallM.RANDOM_IRREDUCIBLE_POLYNOMIAL, sr)
     val ring = new PolynomialRingGF2m(field, gp)
 
     // matrix used to compute square roots in (GF(2^m))^t
@@ -60,9 +61,9 @@ class McElieceCryptosystem(config: Configuration) {
     //val g = GeneratorParityCheckMatrix.findNullSpace(h)
 
     // canonical parity-check matrix is not always can be converted to systematic, so it is permuted to make it orthogonal
-    val mmp = GoppaCode.computeSystematicForm(h, sr)
+    val mmp    = GoppaCode.computeSystematicForm(h, sr)
     val shortH = mmp.getSecondMatrix
-    val p1 = mmp.getPermutation
+    val p1     = mmp.getPermutation
 
     // compute short systematic form of generator matrix
     val shortG = shortH.computeTranspose.asInstanceOf[GF2Matrix]
@@ -226,7 +227,7 @@ object McElieceCryptosystem {
       gp: PolynomialGF2mSmallM,
       // below parameter is not mandatory, added for convenience
       qInv: Array[PolynomialGF2mSmallM]
-   )
+  )
 
   case class McElieceKeyPair(publicKey: McEliecePublicKey, privateKey: McEliecePrivateKey)
 

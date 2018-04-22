@@ -72,11 +72,11 @@ object Main {
       val timeResultsTotal = new ListBuffer[Long]()
       for (_ <- 0 until keyPairCount) {
         val timeResultsKeyPair = new ListBuffer[Long]()
-        val mcEliecePKC = new McElieceCryptosystem(configuration)
-        val leeBrickell = new LeeBrickell(mcEliecePKC.publicKey)
+        val mcEliecePKC        = new McElieceCryptosystem(configuration)
+        val leeBrickell        = new LeeBrickell(mcEliecePKC.publicKey)
 
         for (_ <- 0 until messageCount) {
-          val msg = VectorUtils.generateMessageVector(configuration.k)
+          val msg    = VectorUtils.generateMessageVector(configuration.k)
           val cipher = mcEliecePKC.encryptVector(msg)
 
           val start = System.currentTimeMillis
@@ -93,7 +93,10 @@ object Main {
           }
         }
         if (configuration.verbose.partialResults) {
-          LoggingUtils.singleKeyPairResults(messageCount, timeResultsKeyPair)
+          LoggingUtils.singleKeyPairResults(
+            messageCount,
+            timeResultsKeyPair
+          )
         }
       }
       timeResultsTotal
@@ -111,7 +114,9 @@ object Main {
             messageCount,
             keyPairCount,
             results,
-            s"Search size parameter p = $searchSize."
+            s"Search size parameter p = $searchSize. " +
+              s"Guess probability on single information-set I = " +
+              f"${LeeBrickell.getGuessProbability(configuration.n, configuration.k, configuration.t, searchSize) * 100}%1.4f%%."
           )
         }
       }
@@ -129,7 +134,9 @@ object Main {
         LoggingUtils.totalResults(
           messageCount,
           keyPairCount,
-          results
+          results,
+          s"Guess probability on single information-set I = " +
+            f"${LeeBrickell.getGuessProbability(configuration.n, configuration.k, configuration.t, searchSize) * 100}%1.4f%%."
         )
       }
     }

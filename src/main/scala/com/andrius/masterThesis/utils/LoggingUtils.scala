@@ -50,9 +50,12 @@ object LoggingUtils {
       extra: String = ""
   ): Unit = {
     Console.println(
-      s"[ATTACK PARTIAL RESULTS] Average attack time on single key pair (from $messageCount samples)" +
-        s": ${MathUtils.average(timeResultsKeyPair)} ms. Min: ${timeResultsKeyPair.min} ms. " +
-        s"Max: ${timeResultsKeyPair.max} ms. $extra"
+      s"[ATTACK PARTIAL RESULTS] Attack times on single key pair from $messageCount samples. " +
+        s"Min: ${timeResultsKeyPair.min} ms. " +
+        s"Max: ${timeResultsKeyPair.max} ms. " +
+        s"Average: ${MathUtils.average(timeResultsKeyPair)} ms. " +
+        s"Median: ${MathUtils.findMedian(timeResultsKeyPair)} ms. " +
+        s"$extra"
     )
   }
 
@@ -63,9 +66,12 @@ object LoggingUtils {
       extra: String = ""
   ): Unit = {
     Console.println(
-      s"[ATTACK TOTAL RESULTS] Average attack time (from ${keyPairCount * messageCount} samples)" +
-        s": ${MathUtils.average(timeResultsTotal)} ms. Min: ${timeResultsTotal.min} ms. " +
-        s"Max: ${timeResultsTotal.max} ms. $extra"
+      s"[ATTACK TOTAL RESULTS] Attack times from ${keyPairCount * messageCount} samples. " +
+        s"Min: ${timeResultsTotal.min} ms. " +
+        s"Max: ${timeResultsTotal.max} ms. " +
+        s"Average: ${MathUtils.average(timeResultsTotal)} ms. " +
+        s"Median: ${MathUtils.findMedian(timeResultsTotal)} ms. " +
+        s"$extra"
     )
   }
 

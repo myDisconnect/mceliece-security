@@ -121,3 +121,62 @@ class MessageResend(publicKey: McEliecePublicKey) {
   }
 
 }
+
+object MessageResend {
+
+  /**
+    * Get correct error vector guess probability
+    *
+    * @param n        code length
+    * @param t        error correction capability of the code
+    * @param l1Length L1 list length
+    * @return probability
+    */
+  def getAttack1GuessProbability(n: Int, t: Int, l1Length: Int): Double = {
+    (1 / getAttack1TriesExpected(n, t, l1Length)).toDouble
+  }
+
+  /**
+    * Get correct error vector guess probability
+    *
+    * @param k        code dimension
+    * @param t        error correction capability of the code
+    * @param l0Length L0 list length
+    * @param l1Length L1 list length
+    * @return probability
+    */
+  def getAttack2GuessProbability(k: Int, t: Int, l0Length: Int, l1Length: Int): Double = {
+    val unknownErrors = t - l1Length / 2
+    CombinatoricsUtils.combinations(l0Length - unknownErrors, k).toDouble /
+      CombinatoricsUtils.combinations(l0Length, k).toDouble
+  }
+
+  /**
+    * Get expected tries to find correct error vector
+    *
+    * @param n        code length
+    * @param t        error correction capability of the code
+    * @param l1Length L1 list length
+    * @return expected tries
+    */
+  def getAttack1TriesExpected(n: Int, t: Int, l1Length: Int): Int = {
+    val unknownErrors = t - l1Length / 2
+    val knownErrors   = t - unknownErrors
+    (CombinatoricsUtils.combinations(2 * knownErrors, knownErrors) *
+      CombinatoricsUtils.combinations(n - t, unknownErrors)).toInt
+  }
+
+  /**
+    * Get expected tries to find correct error vector
+    *
+    * @param n        code length
+    * @param k        code dimension
+    * @param t        error correction capability of the code
+    * @param l1Length L1 list length
+    * @return expected tries
+    */
+  def getAttack2TriesExpected(n: Int, k: Int, t: Int, l1Length: Int): Int = {
+    (1 / getAttack2GuessProbability(n, k, t, l1Length)).toInt
+  }
+
+}

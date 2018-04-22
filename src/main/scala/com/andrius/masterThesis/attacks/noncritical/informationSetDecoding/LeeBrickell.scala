@@ -30,7 +30,7 @@ class LeeBrickell(publicKey: McEliecePublicKey) {
     *
     * @param c cipher
     * @param p the search size parameter (0 <= p <= t), must be small to keep the number of size-p subsets,
-    *          p = 2 is optimal for the binary case (@see 2)
+    *          p = 2 is optimal for the binary case
     * @return message
     */
   def attack(c: GF2Vector, p: Int = 2): GF2Vector = {
@@ -84,6 +84,41 @@ class LeeBrickell(publicKey: McEliecePublicKey) {
       }
     }
     decipheredMsg
+  }
+
+}
+
+object LeeBrickell {
+
+  /**
+    * Get correct error vector guess probability on single information-set
+    *
+    * @param n code length
+    * @param k code dimension
+    * @param t error correction capability of the code
+    * @param p search size
+    * @return probability
+    */
+  def getGuessProbability(n: Int, k: Int, t: Int, p: Int): Double = {
+    var probability = 0d
+    for (i <- 0 to p if i <= k) {
+      probability += (CombinatoricsUtils.combinations(n - k, t - i) * CombinatoricsUtils.combinations(k, i)).toDouble /
+        CombinatoricsUtils.combinations(n, t).toDouble
+    }
+    probability
+  }
+
+  /**
+    * Get expected tries to find correct error vector on single information-set
+    *
+    * @param n code length
+    * @param k code dimension
+    * @param t error correction capability of the code
+    * @param p search size
+    * @return expected tries
+    */
+  def getTriesExpected(n: Int, k: Int, t: Int, p: Int): Int = {
+    (1 / getGuessProbability(n, k, t, p)).toInt
   }
 
 }

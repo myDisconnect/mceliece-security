@@ -33,11 +33,50 @@ object MathUtils {
     * Simple average, could be rewritten to use generic types! :)
     *
     * @param items items
-    * @return
+    * @return average
     */
   def average(items: Seq[Long]): String = {
     items.foldLeft((0.0, 1))((acc, i) => (acc._1 + (i - acc._1) / acc._2, acc._2 + 1))._1.formatted("%.3f")
   }
+
+  /**
+    * Random Pivot
+    *
+    * @param arr sequence of Long values
+    * @tparam T type
+    * @return random pivot
+    */
+  private def choosePivot[T](arr: Seq[T]): T = arr(scala.util.Random.nextInt(arr.size))
+
+  /**
+    *
+    * @param arr sequence of Long values
+    * @param k   size
+    * @return median
+    */
+  @tailrec
+  private def findKMedian(arr: Seq[Long], k: Int): Long = {
+    val a      = choosePivot[Long](arr)
+    val (s, b) = arr.partition(a > _)
+    if (s.size == k) a
+    // The following test is used to avoid infinite repetition
+    else if (s.isEmpty) {
+      val (s, b) = arr.partition(a == _)
+      if (s.size > k) a
+      else findKMedian(b, k - s.size)
+    } else if (s.size < k) findKMedian(b, k - s.size)
+    else findKMedian(s, k)
+  }
+
+  /**
+    * Find median using:
+    * Random Pivot (quadratic, linear average), Immutable
+    *
+    * @see https://stackoverflow.com/questions/4662292/scala-median-implementation
+    * @param arr sequence of values
+    * @return median of sequence
+    */
+  def findMedian(arr: Seq[Long]): Long = findKMedian(arr, (arr.size - 1) / 2)
 
   /**
     * Combinations with repetitions
