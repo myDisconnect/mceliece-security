@@ -2,7 +2,6 @@ package com.andrius.masterThesis.utils
 
 import org.bouncycastle.pqc.math.linearalgebra.{GF2Matrix, GF2Vector}
 
-import scala.collection.immutable.Range
 import scala.collection.mutable.ListBuffer
 
 /**
@@ -17,9 +16,9 @@ object MatrixUtils {
     * @return
     */
   def createGF2Matrix(sequence: Seq[Seq[Int]]): GF2Matrix = {
-    val numRows = sequence.length
+    val numRows    = sequence.length
     val numColumns = sequence.head.length
-    val out = Array.ofDim[Int](numRows, (numColumns - 1) / 32 + 1)
+    val out        = Array.ofDim[Int](numRows, (numColumns - 1) / 32 + 1)
     for {
       i <- 0 until numRows
       j <- 0 until numColumns
@@ -39,9 +38,8 @@ object MatrixUtils {
     * @param columns columns to extract from input matrix
     * @return
     */
-  def createGF2MatrixFromColumns(in: GF2Matrix,
-                                 columns: List[Int]): GF2Matrix = {
-    val out = Array.ofDim[Int](in.getNumRows, (columns.length - 1) / 32 + 1)
+  def createGF2MatrixFromColumns(in: GF2Matrix, columns: Seq[Int]): GF2Matrix = {
+    val out    = Array.ofDim[Int](in.getNumRows, (columns.length - 1) / 32 + 1)
     val matrix = in.getIntArray
 
     for ((colToTake, colToSet) <- columns.zipWithIndex) {
@@ -60,7 +58,7 @@ object MatrixUtils {
     */
   def getColumn(in: Array[Array[Int]], pos: Int): Array[Int] = {
     var result = ListBuffer[Int]()
-    val elem = pos % 32
+    val elem   = pos % 32
     val length = pos / 32
     for (i <- in.indices) {
       result += (in(i)(length) >>> elem) & 1
@@ -76,10 +74,10 @@ object MatrixUtils {
     * @param pos    position of the element in the vector
     */
   def setColumn(in: Array[Array[Int]], values: Array[Int], pos: Int): Unit = {
-    val elem = pos % 32
+    val elem   = pos % 32
     val length = pos / 32
     for (i <- in.indices) {
-      val a = in(i)(length)
+      val a  = in(i)(length)
       val el = a >>> elem & 1
       if (el != values(i)) {
         in(i)(length) = a ^ (1 << elem)
@@ -94,7 +92,7 @@ object MatrixUtils {
     * @param rows rows to extract from input matrix
     * @return
     */
-  def createGF2MatrixFromRows(in: GF2Matrix, rows: List[Int]): GF2Matrix = {
+  def createGF2MatrixFromRows(in: GF2Matrix, rows: Seq[Int]): GF2Matrix = {
     val out = Array.ofDim[Int](rows.length, in.getLength)
 
     for ((rowToTake, rowToSet) <- rows.zipWithIndex) {
@@ -208,7 +206,7 @@ object MatrixUtils {
     */
   def appendToMatrixVectorColumn(a: GF2Matrix, b: GF2Vector): GF2Matrix = {
     require(a.getNumRows == b.getLength)
-    val m = Array.ofDim[Int](a.getNumRows, a.getNumColumns / 32 + 1)
+    val m      = Array.ofDim[Int](a.getNumRows, a.getNumColumns / 32 + 1)
     val aArray = a.getIntArray
     val bArray = b.getVecArray
 
@@ -253,7 +251,7 @@ object MatrixUtils {
     * @return new submatrix
     */
   def getSubMatrix(in: GF2Matrix, firstRow: Int, firstCol: Int, lastRow: Int, lastCol: Int): GF2Matrix = {
-    val rows = lastRow - firstRow + 1
+    val rows    = lastRow - firstRow + 1
     val columns = lastCol - firstCol + 1
 
     require(
@@ -265,9 +263,9 @@ object MatrixUtils {
       s"Incorrect row positions given: Start: $firstRow, End: $lastRow"
     )
 
-    val out = Array.ofDim[Int](rows, (columns - 1) / 32 + 1)
+    val out     = Array.ofDim[Int](rows, (columns - 1) / 32 + 1)
     val inArray = in.getIntArray
-    var row = 0
+    var row     = 0
     for (i <- firstRow to lastRow) {
       var col = 0
       for (j <- firstCol to lastCol) {

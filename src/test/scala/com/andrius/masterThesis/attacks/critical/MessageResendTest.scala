@@ -79,7 +79,7 @@ class MessageResendTest extends FlatSpec {
             l0Length,
             l1Length
           )
-          val expectedTries = Math.ceil(1 / guessProbability)
+          val expectedTries = (1 / guessProbability).toInt
           totalExpectedTries += expectedTries
           if (logPartial) {
             println(

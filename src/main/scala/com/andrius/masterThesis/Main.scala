@@ -51,6 +51,7 @@ object Main {
       case _ =>
         throw new Exception("Unknown attack specified")
     }
+    LoggingUtils.programFinished
   }
 
   /**
@@ -116,7 +117,9 @@ object Main {
             results,
             s"Search size parameter p = $searchSize. " +
               s"Guess probability on single information-set I = " +
-              f"${LeeBrickell.getGuessProbability(configuration.n, configuration.k, configuration.t, searchSize) * 100}%1.4f%%."
+              f"${LeeBrickell.getGuessProbability(configuration.n, configuration.k, configuration.t, searchSize) * 100}%1.2f%%. " +
+              f"Expected information-set I tries: ${LeeBrickell
+                .getTriesExpected(configuration.n, configuration.k, configuration.t, searchSize)}%1.2f"
           )
         }
       }
@@ -136,7 +139,9 @@ object Main {
           keyPairCount,
           results,
           s"Guess probability on single information-set I = " +
-            f"${LeeBrickell.getGuessProbability(configuration.n, configuration.k, configuration.t, searchSize) * 100}%1.4f%%."
+            f"${LeeBrickell.getGuessProbability(configuration.n, configuration.k, configuration.t, searchSize) * 100}%1.2f%%. " +
+            f"Expected information-set I tries: ${LeeBrickell
+              .getTriesExpected(configuration.n, configuration.k, configuration.t, searchSize)}%1.2f"
         )
       }
     }
@@ -251,12 +256,14 @@ object Main {
       messageCount: Int,
       algorithm: Int
   ): Unit = {
-    var extraTriesTotal  = 0
-    val timeResultsTotal = new ListBuffer[Long]()
+    var totalTries                 = 0
+    var totalTriesExpected: BigInt = 0
+    val timeResultsTotal           = new ListBuffer[Long]()
     for (_ <- 0 until keyPairCount) {
-      var extraTriesLocal      = 0
-      var identicalErrorsLocal = 0
-      val timeResultsKeyPair   = new ListBuffer[Long]()
+      var keyPairTries            = 0
+      var keyPairExpected: BigInt = 0
+      var identicalErrorsLocal    = 0
+      val timeResultsKeyPair      = new ListBuffer[Long]()
 
       val mcEliecePKC   = new McElieceCryptosystem(configuration)
       val messageResend = new MessageResend(mcEliecePKC.publicKey)
@@ -285,14 +292,37 @@ object Main {
               if (configuration.verbose.totalResults) {
                 timeResultsTotal += end
               }
+              val expected = algorithm match {
+                case Attack.RelatedMessageAlgorithm.IndependentLinearColumns =>
+                  val l1Length = cipher1.add(cipher2).asInstanceOf[GF2Vector].getHammingWeight
+                  val l0Length = configuration.n - l1Length
+                  MessageResend.getAttack2TriesExpected(
+                    configuration.k,
+                    configuration.t,
+                    l0Length,
+                    l1Length
+                  )
+                case Attack.RelatedMessageAlgorithm.ErrorVectorSearch =>
+                  val l1Length = cipher1.add(cipher2).asInstanceOf[GF2Vector].getHammingWeight
+                  MessageResend.getAttack1TriesExpected(
+                    configuration.n,
+                    configuration.t,
+                    l1Length
+                  )
+              }
               found = true
-            } else {
               if (configuration.verbose.partialResults) {
-                extraTriesLocal += 1
+                keyPairExpected += expected
               }
               if (configuration.verbose.totalResults) {
-                extraTriesTotal += 1
+                totalTriesExpected += expected
               }
+            }
+            if (configuration.verbose.partialResults) {
+              keyPairTries += 1
+            }
+            if (configuration.verbose.totalResults) {
+              totalTries += 1
             }
           }
         } catch {
@@ -305,8 +335,8 @@ object Main {
         LoggingUtils.singleKeyPairResults(
           messageCount,
           timeResultsKeyPair,
-          s"Total tries needed ${extraTriesLocal + messageCount} and accidental identical errors generated " +
-            s"$identicalErrorsLocal."
+          s"Total tries needed ${keyPairTries + messageCount} from expected $keyPairExpected " +
+            s"and accidental identical errors generated $identicalErrorsLocal."
         )
       }
       if (configuration.verbose.ramUsage) {
@@ -318,7 +348,7 @@ object Main {
         messageCount,
         keyPairCount,
         timeResultsTotal,
-        s"Total tries needed ${extraTriesTotal + messageCount}."
+        s"Total tries needed ${totalTries + messageCount} from expected $totalTriesExpected."
       )
     }
   }

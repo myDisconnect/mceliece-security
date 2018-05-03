@@ -137,21 +137,6 @@ object MessageResend {
   }
 
   /**
-    * Get correct error vector guess probability
-    *
-    * @param k        code dimension
-    * @param t        error correction capability of the code
-    * @param l0Length L0 list length
-    * @param l1Length L1 list length
-    * @return probability
-    */
-  def getAttack2GuessProbability(k: Int, t: Int, l0Length: Int, l1Length: Int): Double = {
-    val unknownErrors = t - l1Length / 2
-    CombinatoricsUtils.combinations(l0Length - unknownErrors, k).toDouble /
-      CombinatoricsUtils.combinations(l0Length, k).toDouble
-  }
-
-  /**
     * Get expected tries to find correct error vector
     *
     * @param n        code length
@@ -166,17 +151,34 @@ object MessageResend {
       CombinatoricsUtils.combinations(n - t, unknownErrors)).toInt
   }
 
+
+
+  /**
+    * Get correct error vector guess probability
+    *
+    * @param k        code dimension
+    * @param t        error correction capability of the code
+    * @param l0Length L0 list length
+    * @param l1Length L1 list length
+    * @return probability
+    */
+  def getAttack2GuessProbability(k: Int, t: Int, l0Length: Int, l1Length: Int): BigDecimal = {
+    val unknownErrors = t - l1Length / 2
+    BigDecimal(CombinatoricsUtils.combinations(l0Length - unknownErrors, k)) /
+      BigDecimal(CombinatoricsUtils.combinations(l0Length, k))
+  }
+
   /**
     * Get expected tries to find correct error vector
     *
-    * @param n        code length
     * @param k        code dimension
     * @param t        error correction capability of the code
+    * @param l0Length L0 list length
     * @param l1Length L1 list length
     * @return expected tries
     */
-  def getAttack2TriesExpected(n: Int, k: Int, t: Int, l1Length: Int): Int = {
-    (1 / getAttack2GuessProbability(n, k, t, l1Length)).toInt
+  def getAttack2TriesExpected(k: Int, t: Int, l0Length: Int, l1Length: Int): Int = {
+    (1 / getAttack2GuessProbability(k, t, l0Length, l1Length)).toInt
   }
 
 }

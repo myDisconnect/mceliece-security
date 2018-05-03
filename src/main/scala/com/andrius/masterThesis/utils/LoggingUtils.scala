@@ -1,5 +1,8 @@
 package com.andrius.masterThesis.utils
 
+import java.text.SimpleDateFormat
+import java.util.Date
+
 import com.andrius.masterThesis.attacks.Attack
 import com.andrius.masterThesis.attacks.structural.SupportSplittingAlgorithm
 import org.bouncycastle.pqc.math.linearalgebra.{GF2Matrix, GF2Vector, Permutation, PolynomialGF2mSmallM}
@@ -11,14 +14,26 @@ import scala.collection.mutable.ListBuffer
   */
 object LoggingUtils {
 
+  val dateFormatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SS")
+
   def receivedSecurityParametersResults(n: Int, k: Int, t: Int, m: Int): Unit = {
     Console.println(
-      s"[RECEIVED SECURITY PARAMETERS] m = $m, t = $t, which is equivalent to (n, k, t) = ($n, $k, $t)"
+      s"${dateFormatter.format(new Date(System.currentTimeMillis))} " +
+        s"[RECEIVED SECURITY PARAMETERS] m = $m, t = $t, which is equivalent to (n, k, t) = ($n, $k, $t)"
     )
   }
 
   def attacksInfo(attackIds: Int*): Unit = {
-    Console.println(s"[ATTACK INFO] Executing ${attackIds.map(Attack.map(_)).mkString(" + ")} attack(s).")
+    Console.println(
+      s"${dateFormatter.format(new Date(System.currentTimeMillis))} " +
+        s"[ATTACK INFO] Executing ${attackIds.map(Attack.map(_)).mkString(" + ")} attack(s)."
+    )
+  }
+
+  def programFinished: Unit = {
+    Console.println(
+      s"${dateFormatter.format(new Date(System.currentTimeMillis))} Program finished"
+    )
   }
 
   def keyPairGenerationResults(
@@ -29,7 +44,8 @@ object LoggingUtils {
       gPublic: GF2Matrix
   ): Unit = {
     Console.println(
-      s"[KEY PAIR GENERATION] Selected irreducible binary Goppa code$goppaPoly\n" +
+      s"${dateFormatter.format(new Date(System.currentTimeMillis))} " +
+        s"[KEY PAIR GENERATION] Selected irreducible binary Goppa code$goppaPoly\n" +
         s"Private generator matrix G = \n$g" +
         //s"Possible G codewords:\n${GeneratorParityCheckMatrix.generateAllCodewords(gMatrix)}\n" +
         s"Matrix S = \n${s}Permutation P = \n${PermutationUtils.toGF2Matrix(p)}\n" +
@@ -39,7 +55,8 @@ object LoggingUtils {
 
   def cipherGenerationResults(m: GF2Vector, mG: GF2Vector, e: GF2Vector): Unit = {
     Console.println(
-      s"[CIPHER GENERATION] Message vector m = $m, random error vector e = $e, m * G' = $mG, " +
+      s"${dateFormatter.format(new Date(System.currentTimeMillis))} " +
+        s"[CIPHER GENERATION] Message vector m = $m, random error vector e = $e, m * G' = $mG, " +
         s"cipher c = ${mG.add(e).asInstanceOf[GF2Vector]}"
     )
   }
@@ -50,7 +67,8 @@ object LoggingUtils {
       extra: String = ""
   ): Unit = {
     Console.println(
-      s"[ATTACK PARTIAL RESULTS] Attack times on single key pair from $messageCount samples. " +
+      s"${dateFormatter.format(new Date(System.currentTimeMillis))} " +
+        s"[ATTACK PARTIAL RESULTS] Attack times on single key pair from $messageCount samples. " +
         s"Min: ${timeResultsKeyPair.min} ms. " +
         s"Max: ${timeResultsKeyPair.max} ms. " +
         s"Average: ${MathUtils.average(timeResultsKeyPair)} ms. " +
@@ -66,7 +84,8 @@ object LoggingUtils {
       extra: String = ""
   ): Unit = {
     Console.println(
-      s"[ATTACK TOTAL RESULTS] Attack times from ${keyPairCount * messageCount} samples. " +
+      s"${dateFormatter.format(new Date(System.currentTimeMillis))} " +
+        s"[ATTACK TOTAL RESULTS] Attack times from ${keyPairCount * messageCount} samples. " +
         s"Min: ${timeResultsTotal.min} ms. " +
         s"Max: ${timeResultsTotal.max} ms. " +
         s"Average: ${MathUtils.average(timeResultsTotal)} ms. " +
@@ -79,14 +98,16 @@ object LoggingUtils {
     val mb      = 1024 * 1024
     val runtime = Runtime.getRuntime
     Console.println(
-      s"[RAM USAGE RESULTS] Current RAM used ${(runtime.totalMemory - runtime.freeMemory) / mb}MB/" +
+      s"${dateFormatter.format(new Date(System.currentTimeMillis))} " +
+        s"[RAM USAGE RESULTS] Current RAM used ${(runtime.totalMemory - runtime.freeMemory) / mb}MB/" +
         s"${runtime.totalMemory / mb}MB"
     )
   }
 
   def ssaGeneratorMatrixGenerationResults(goppaPoly: PolynomialGF2mSmallM, gMatrix: GF2Matrix, iteration: Int): Unit = {
     Console.println(
-      s"[SSA G GENERATION] Try number #$iteration. Selected irreducible binary Goppa code$goppaPoly\n" +
+      s"${dateFormatter.format(new Date(System.currentTimeMillis))} " +
+        s"[SSA G GENERATION] Try number #$iteration. Selected irreducible binary Goppa code$goppaPoly\n" +
         s"Private generator matrix G = \n${gMatrix}Possible codewords:\n" +
         s"${GeneratorMatrixUtils.generateAllCodewords(gMatrix)}"
     )
@@ -94,7 +115,8 @@ object LoggingUtils {
 
   def ssaResults(publicG: GF2Matrix, generatedG: GF2Matrix, permutationMap: Map[Int, Int], iteration: Int): Unit = {
     Console.println(
-      s"[SSA RESULT GENERATED] Number of tries required $iteration. Public generator matrix G' = \n$publicG" +
+      s"${dateFormatter.format(new Date(System.currentTimeMillis))} " +
+        s"[SSA RESULT GENERATED] Number of tries required $iteration. Public generator matrix G' = \n$publicG" +
         s"Private generator matrix G = \n${generatedG}Permutation map:\n$permutationMap\n" +
         // @TODO DELETE THIS
         s"Permuted public G codewords\n${SupportSplittingAlgorithm
